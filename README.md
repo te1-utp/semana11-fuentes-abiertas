@@ -5,7 +5,9 @@
 
 Esta página reemplaza la presentación de la Semana 11 por una experiencia paso a paso. Mantiene todo el contenido del material original (plataformas OSINT, AbuseIPDB, VirusTotal, semáforo del analista, buenas prácticas, mini-laboratorio, pareo, casos y test de calibración) y agrega teoría y actividades interactivas.
 
-**Enlace para los estudiantes:** `https://NOMBRE-ORGANIZACION.github.io/NOMBRE-REPOSITORIO/` (reemplazar al publicar)
+**Enlace para los estudiantes:** [https://te1-utp.github.io/semana11-fuentes-abiertas/](https://te1-utp.github.io/semana11-fuentes-abiertas/)
+
+**Repositorio:** [te1-utp/semana11-fuentes-abiertas](https://github.com/te1-utp/semana11-fuentes-abiertas)
 
 ## Qué contiene la página
 
@@ -39,5 +41,4 @@ La entrega de la semana es la **ficha de verificación** (archivo `.md` o PDF), 
 ## Archivos
 
 - `index.html`: la página de los estudiantes.
-- `docente.html`: claves de respuesta de las actividades (opcional; si no se quiere que los estudiantes la vean, no subirla).
 - `README.md`: este documento.
