@@ -1,0 +1,1209 @@
+<!doctype html>
+<html lang="es" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Semana 11: Fuentes abiertas de inteligencia | ISTMO SOC</title>
+<meta name="description" content="Tópicos Especiales I, UTP. Semana 11: consulta de reputación con AbuseIPDB y VirusTotal, el semáforo del analista y buenas prácticas con OSINT.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=Figtree:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#0f1823; --bg-2:#142030; --panel:#182638; --panel-2:#1e2f45; --line:#2b3f58;
+  --text:#e8eef6; --muted:#9db0c6; --accent:#7db4ff; --accent-ink:#06182e;
+  --red:#ff6a6a; --amber:#ffb830; --green:#47dc8c; --gray:#98a6b8;
+  --head:'Bricolage Grotesque','Segoe UI',system-ui,sans-serif;
+  --body:'Figtree','Segoe UI',system-ui,sans-serif;
+  --mono:'IBM Plex Mono',ui-monospace,Consolas,monospace;
+  --glow:rgba(125,180,255,.10);
+  color-scheme:dark;
+}
+:root[data-theme="light"]{
+  --bg:#eef2f6; --bg-2:#e4eaf1; --panel:#ffffff; --panel-2:#f3f6fa; --line:#c9d4e0;
+  --text:#14212f; --muted:#506177; --accent:#0b5cc4; --accent-ink:#ffffff;
+  --red:#c42b31; --amber:#8f5a00; --green:#12703a; --gray:#5d6b7d; --glow:rgba(11,92,196,.07);
+  color-scheme:light;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--text);font-family:var(--body);font-size:17px;line-height:1.6;
+  background-image:radial-gradient(1200px 500px at 70% -10%,var(--glow),transparent 70%)}
+a{color:var(--accent)}
+img,svg{max-width:100%}
+h1,h2,h3{font-family:var(--head);line-height:1.1;margin:0;letter-spacing:-.01em}
+p{margin:0 0 1em;max-width:68ch}
+code,.mono{font-family:var(--mono);font-size:.92em}
+:focus-visible{outline:3px solid var(--accent);outline-offset:2px;border-radius:4px}
+button,select,input,textarea{font:inherit;color:inherit}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}html{scroll-behavior:auto}}
+
+/* barra superior */
+.top{position:sticky;top:env(safe-area-inset-top,0px);z-index:30;display:flex;align-items:center;gap:14px;padding:10px max(16px,env(safe-area-inset-right,0px)) 10px max(16px,env(safe-area-inset-left,0px));background:color-mix(in srgb,var(--bg) 88%,transparent);backdrop-filter:blur(10px);border-bottom:1px solid var(--line)}
+.brand{font-family:var(--head);font-weight:700;font-size:1.05rem;white-space:nowrap}
+.brand small{display:block;font-family:var(--body);font-weight:500;font-size:.75rem;color:var(--muted);letter-spacing:0}
+.clock{margin-left:auto;font-family:var(--mono);font-size:1.5rem;font-weight:500;letter-spacing:.04em;display:flex;align-items:baseline;gap:8px}
+.clock small{font-size:.72rem;color:var(--muted);letter-spacing:0;font-family:var(--body)}
+.clock .colon{animation:blink 1.4s steps(1) infinite}
+@keyframes blink{50%{opacity:.25}}
+.pips{display:flex;gap:5px}
+.pips i{width:10px;height:10px;border-radius:50%;border:2px solid var(--line);display:block}
+.pips i.on{background:var(--green);border-color:var(--green)}
+.icon-btn{flex:none;background:none;border:1px solid var(--line);border-radius:8px;width:38px;height:38px;cursor:pointer;display:grid;place-items:center}
+.icon-btn:hover{border-color:var(--accent)}
+.menu-btn{display:none}
+.bar{position:sticky;top:calc(59px + env(safe-area-inset-top,0px));z-index:29;height:3px;background:var(--line)}
+.bar i{display:block;height:100%;width:0;background:var(--accent)}
+
+/* estructura */
+.shell{max-width:1260px;margin:0 auto;padding-left:max(24px,env(safe-area-inset-left,0px));padding-right:max(24px,env(safe-area-inset-right,0px));display:grid;grid-template-columns:230px minmax(0,1fr);gap:48px}
+.rail{position:sticky;top:90px;align-self:start;padding-top:56px}
+.rail ol{list-style:none;margin:0;padding:0 0 0 18px;border-left:2px solid var(--line)}
+.rail li{position:relative;margin:0}
+.rail a{display:block;padding:7px 0 7px 14px;text-decoration:none;color:var(--muted);font-size:.93rem;line-height:1.25}
+.rail a b{display:block;font-family:var(--mono);font-weight:500;font-size:.78rem}
+.rail li::before{content:"";position:absolute;left:-25px;top:15px;width:10px;height:10px;border-radius:50%;background:var(--bg);border:2px solid var(--line)}
+.rail li.active a{color:var(--text)}
+.rail li.active::before{background:var(--accent);border-color:var(--accent)}
+.rail li.seen::before{border-color:var(--accent)}
+.who{margin-top:26px;padding-left:18px;font-size:.85rem;color:var(--muted)}
+.who b{color:var(--text);display:block;font-size:1rem}
+
+.block{padding:44px 0 12px}
+.block-head{display:grid;grid-template-columns:auto 1fr;column-gap:22px;align-items:start;margin-bottom:26px}
+.hour{font-family:var(--mono);font-size:2.3rem;font-weight:500;color:var(--accent);line-height:1}
+.day{display:inline-block;margin-top:8px;font-size:.8rem;padding:2px 10px;border:1px solid var(--line);border-radius:99px;color:var(--muted)}
+.block-head h2{font-size:clamp(1.9rem,3.6vw,2.7rem)}
+.block-head p{grid-column:2;margin-top:12px;color:var(--muted);font-size:1.08rem}
+.block h3{font-size:1.35rem;margin:34px 0 10px}
+
+/* hero */
+.hero{padding:44px 0 20px;display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1fr);gap:40px;align-items:center}
+.hero h1{font-size:clamp(2.5rem,5.6vw,4.5rem);font-weight:800;letter-spacing:-.025em}
+.hero .sub{margin:18px 0 22px;font-size:1.15rem;color:var(--muted)}
+.hero small{color:var(--muted);display:block;margin-bottom:14px}
+.join{display:flex;gap:10px;flex-wrap:wrap}
+.join input{flex:1 1 220px;min-width:0;padding:12px 14px;border-radius:8px;border:1px solid var(--line);background:var(--panel)}
+.btn{display:inline-block;padding:11px 18px;border-radius:8px;border:1px solid var(--accent);background:var(--accent);color:var(--accent-ink);font-weight:700;cursor:pointer;text-decoration:none}
+.btn:hover{filter:brightness(1.08)}
+.btn.ghost{background:transparent;color:var(--text);border-color:var(--line);font-weight:600}
+.btn.ghost:hover{border-color:var(--accent)}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.ticket{background:#0a1119;color:#d7e3f0;border:1px solid var(--line);border-radius:6px;padding:16px 18px;font-family:var(--mono);font-size:.84rem;line-height:1.7;box-shadow:0 0 0 6px var(--glow)}
+:root[data-theme="light"] .ticket{background:#14212f}
+.ticket .t-head{display:flex;justify-content:space-between;gap:10px;color:#8fa6bf;border-bottom:1px dashed #33485f;padding-bottom:8px;margin-bottom:10px}
+.ticket .deny{color:#ff8d8d}
+.ticket .ln{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ticket .note{margin-top:10px;color:#ffd27a;white-space:normal}
+.ticket .cursor{display:inline-block;width:8px;height:1em;background:#d7e3f0;vertical-align:-2px;animation:blink 1s steps(1) infinite}
+
+/* piezas */
+.callout{border-left:4px solid var(--accent);background:color-mix(in srgb,var(--accent) 10%,var(--panel));padding:14px 18px;border-radius:4px 10px 10px 4px;margin:20px 0;max-width:74ch}
+.callout.warn{border-color:var(--amber);background:color-mix(in srgb,var(--amber) 10%,var(--panel))}
+.callout.bad{border-color:var(--red);background:color-mix(in srgb,var(--red) 10%,var(--panel))}
+.callout b:first-child{display:block;margin-bottom:2px}
+.callout p:last-child{margin-bottom:0}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:20px;margin:18px 0}
+.panel > h4{margin:0 0 12px;font-family:var(--head);font-size:1.1rem}
+.split{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:28px;align-items:start}
+.tools{display:flex;flex-wrap:wrap;gap:8px;margin:10px 0}
+.chip{padding:7px 13px;border-radius:99px;border:1px solid var(--line);background:var(--panel);cursor:pointer;font-weight:600;font-size:.92rem}
+.chip:hover{border-color:var(--accent)}
+.chip[aria-pressed="true"]{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.sig{display:inline-flex;align-items:center;gap:7px;font-weight:700;font-size:.9rem;padding:3px 12px 3px 9px;border-radius:99px;border:1.5px solid currentColor}
+.sig::before{content:"";width:10px;height:10px;border-radius:50%;background:currentColor}
+.sig.rojo{color:var(--red)}.sig.ambar{color:var(--amber)}.sig.verde{color:var(--green)}.sig.gris{color:var(--gray)}
+.ok{color:var(--green);font-weight:700}.no{color:var(--red);font-weight:700}
+.fb{margin-top:12px;padding:12px 14px;border-radius:8px;background:var(--panel-2);border:1px solid var(--line);max-width:74ch}
+.fb.good{border-color:var(--green)}.fb.bad{border-color:var(--red)}
+.fb p:last-child{margin:0}
+.progress-text{font-size:.9rem;color:var(--muted)}
+
+/* poll / opciones */
+.opts{display:grid;gap:8px;margin:12px 0}
+.opt{text-align:left;padding:12px 14px;border:1px solid var(--line);border-radius:8px;background:var(--panel);cursor:pointer}
+.opt:hover:not(:disabled){border-color:var(--accent)}
+.opt.sel{border-color:var(--accent);background:color-mix(in srgb,var(--accent) 12%,var(--panel))}
+.opt.right{border-color:var(--green);background:color-mix(in srgb,var(--green) 12%,var(--panel))}
+.opt.wrong{border-color:var(--red);background:color-mix(in srgb,var(--red) 10%,var(--panel))}
+
+/* fuentes */
+.src-list{display:grid;gap:0;border-top:1px solid var(--line);margin:18px 0}
+.src{border-bottom:1px solid var(--line)}
+.src > button{width:100%;display:grid;grid-template-columns:170px 1fr 20px;gap:14px;align-items:center;padding:14px 4px;background:none;border:0;cursor:pointer;text-align:left}
+.src > button b{font-family:var(--head);font-size:1.15rem}
+.src > button span{color:var(--muted)}
+.src > button::after{content:"+";font-family:var(--mono);color:var(--accent);font-size:1.3rem;text-align:right}
+.src > button[aria-expanded="true"]::after{content:"-"}
+.src .more{padding:0 4px 16px;display:none}
+.src .more.open{display:block}
+.pareo{display:grid;gap:10px;margin:14px 0}
+.pareo label{display:grid;grid-template-columns:minmax(0,1fr) 190px;gap:12px;align-items:center;padding:8px 0;border-bottom:1px dashed var(--line)}
+select,textarea,.field{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:9px 11px;width:100%}
+select.right{border-color:var(--green)}select.wrong{border-color:var(--red)}
+
+/* medidores */
+.rep{background:#0a1119;color:#dbe6f2;border:1px solid var(--line);border-radius:8px;padding:18px;font-size:.92rem}
+:root[data-theme="light"] .rep{background:#14212f}
+.rep-head{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:14px;flex-wrap:wrap}
+.rep-main{display:grid;grid-template-columns:130px 1fr;gap:18px;align-items:center}
+.meter{width:124px;height:124px;border-radius:50%;border:0;cursor:pointer;background:conic-gradient(var(--c,var(--gray)) calc(var(--v,0)*1%),#2a3b50 0);display:grid;place-items:center;position:relative;color:#fff}
+.meter::before{content:"";position:absolute;inset:11px;border-radius:50%;background:#0a1119}
+:root[data-theme="light"] .meter::before{background:#14212f}
+.meter b{position:relative;font-family:var(--mono);font-size:1.7rem}
+.fields{list-style:none;margin:0;padding:0;display:grid;gap:4px}
+.fields button{width:100%;display:flex;justify-content:space-between;gap:10px;padding:6px 9px;border:1px solid transparent;border-radius:6px;background:rgba(255,255,255,.04);cursor:pointer;text-align:left;color:inherit}
+.fields button:hover,.fields button.on,.meter.on{border-color:var(--accent)}
+.fields button span{color:#8fa6bf}
+.tip{margin:14px 0 0;padding:10px 12px;border-radius:6px;background:rgba(125,180,255,.12);min-height:3.4em;color:#dbe6f2;font-size:.9rem}
+.range{width:100%;accent-color:var(--accent)}
+.engines{display:grid;grid-template-columns:repeat(18,1fr);gap:4px;margin:12px 0}
+.engines i{aspect-ratio:1;border-radius:3px;background:#2c4a3b;display:block}
+.engines i.hit{background:var(--red)}
+.nf{padding:26px;text-align:center;border:1px dashed #4b5f77;border-radius:8px;color:#aab9cb}
+.hashbox{font-family:var(--mono);font-size:.82rem;word-break:break-all;background:var(--panel-2);border:1px solid var(--line);border-radius:6px;padding:10px 12px;margin:6px 0}
+.hashbox mark{background:var(--amber);color:#201400;border-radius:2px}
+
+/* semaforo */
+.signals{display:grid;grid-template-columns:repeat(4,1fr);gap:0;border:1px solid var(--line);border-radius:10px;overflow:hidden;margin:20px 0}
+.signals > div{padding:16px;border-right:1px solid var(--line);background:var(--panel)}
+.signals > div:last-child{border-right:0}
+.signals .sig{margin-bottom:10px}
+.signals p{font-size:.92rem;margin:0 0 .6em}
+.case-facts{display:grid;grid-template-columns:auto 1fr;gap:4px 18px;margin:12px 0;font-size:.95rem}
+.case-facts dt{color:var(--muted)}.case-facts dd{margin:0;font-family:var(--mono);font-size:.9rem}
+.pick{display:flex;gap:8px;flex-wrap:wrap;margin:10px 0}
+.pick .sigbtn{padding:8px 14px;border-radius:99px;border:1.5px solid currentColor;background:var(--panel);cursor:pointer;font-weight:700}
+.sigbtn.rojo{color:var(--red)}.sigbtn.ambar{color:var(--amber)}.sigbtn.verde{color:var(--green)}.sigbtn.gris{color:var(--gray)}
+.sigbtn[aria-pressed="true"]{background:currentColor}
+.sigbtn[aria-pressed="true"] span{color:var(--bg)}
+.sigbtn span{color:var(--text)}
+.console{background:#0a1119;color:#d7e3f0;border:1px solid var(--line);border-radius:8px;padding:16px;font-family:var(--mono);font-size:.84rem;line-height:1.65;min-height:150px;margin:12px 0}
+:root[data-theme="light"] .console{background:#14212f}
+.console .h{color:#7db4ff;display:block;margin-top:10px}.console .h:first-child{margin-top:0}
+.console .bad{color:#ff8d8d}.console .warn{color:#ffd27a}.console .okc{color:#7fe3a8}
+
+/* higiene */
+details.pr{border-bottom:1px solid var(--line);padding:4px 0}
+details.pr summary{cursor:pointer;padding:12px 0;font-family:var(--head);font-weight:700;font-size:1.12rem;list-style:none}
+details.pr summary::-webkit-details-marker{display:none}
+details.pr summary::before{content:"+";font-family:var(--mono);color:var(--accent);display:inline-block;width:1.4em}
+details.pr[open] summary::before{content:"-"}
+details.pr div{padding:0 0 14px 1.4em}
+.tf{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px 16px;padding:12px 0;border-bottom:1px dashed var(--line);align-items:center}
+.tf .row{display:flex;gap:8px}
+.tf .fb{grid-column:1/-1;margin:0}
+
+/* mision */
+.steps{list-style:none;padding:0;margin:14px 0}
+.steps li{display:flex;gap:12px;padding:10px 0;border-bottom:1px dashed var(--line)}
+.steps input{width:22px;height:22px;margin-top:3px;accent-color:var(--accent);flex:none}
+.flag{display:grid;gap:8px;padding:14px 0;border-bottom:1px dashed var(--line)}
+.flag .row{display:flex;gap:8px;flex-wrap:wrap}
+.flag .row input{flex:1 1 180px}
+.flagval{font-family:var(--mono);padding:8px 12px;border-radius:6px;background:color-mix(in srgb,var(--green) 14%,var(--panel));border:1px solid var(--green);color:var(--green);font-weight:700;display:inline-block}
+.flagval.lock{background:var(--panel-2);border-color:var(--line);color:var(--muted);font-weight:400}
+.ficha-row{padding:14px 0;border-bottom:1px solid var(--line);display:grid;grid-template-columns:repeat(6,1fr);gap:10px}
+.ficha-row label{display:grid;gap:4px;font-size:.82rem;color:var(--muted)}
+.ficha-row .w2{grid-column:span 2}.ficha-row .w3{grid-column:span 3}.ficha-row .w6{grid-column:1/-1}
+.ficha-row input,.ficha-row select,.ficha-row textarea{color:var(--text);font-size:.95rem;padding:7px 9px}
+.ficha-row textarea{min-height:56px;resize:vertical}
+pre.out{background:var(--panel-2);border:1px solid var(--line);border-radius:8px;padding:14px;overflow:auto;font-family:var(--mono);font-size:.82rem;white-space:pre-wrap}
+.badgewall{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:10px;margin:14px 0}
+.bd{padding:12px 14px;border:1px dashed var(--line);border-radius:8px;color:var(--muted)}
+.bd b{display:block;color:var(--muted)}
+.bd.on{border:1px solid var(--green);color:var(--text);background:color-mix(in srgb,var(--green) 10%,var(--panel))}
+.bd.on b{color:var(--green)}
+.refs{font-size:.9rem;color:var(--muted)}.refs p{margin-bottom:.8em}
+.q{padding:16px 0;border-bottom:1px dashed var(--line)}
+.q > p{font-weight:600;margin-bottom:8px}
+.checks label{display:flex;gap:10px;margin:6px 0}
+footer{padding:60px 0 80px;color:var(--muted);font-size:.9rem}
+.toast{position:fixed;left:50%;bottom:24px;transform:translate(-50%,30px);background:var(--panel);color:var(--text);border:1px solid var(--green);padding:12px 18px;border-radius:10px;opacity:0;pointer-events:none;transition:.3s;z-index:60;box-shadow:0 8px 30px rgba(0,0,0,.35)}
+.toast.show{opacity:1;transform:translate(-50%,0)}
+
+@media (max-width:1000px){
+  .shell{grid-template-columns:minmax(0,1fr);gap:0;padding-left:max(18px,env(safe-area-inset-left,0px));padding-right:max(18px,env(safe-area-inset-right,0px))}
+  .menu-btn{display:grid}
+  .rail{display:none;position:fixed;inset:60px 0 0 0;z-index:28;background:var(--bg);padding:20px 30px;overflow:auto}
+  .rail.open{display:block}
+  .hero,.split{grid-template-columns:minmax(0,1fr)}
+  .signals{grid-template-columns:1fr 1fr}.signals > div{border-bottom:1px solid var(--line)}
+  .pips{display:none}
+}
+@media (max-width:620px){
+  body{font-size:16px}
+  .block-head{grid-template-columns:1fr}.block-head p{grid-column:1}
+  .hour{margin-bottom:6px}
+  .src > button{grid-template-columns:1fr 20px}.src > button span{grid-column:1;grid-row:2}
+  .pareo label{grid-template-columns:1fr}
+  .rep-main{grid-template-columns:1fr;justify-items:center}.fields{width:100%}
+  .engines{grid-template-columns:repeat(12,1fr)}
+  .signals{grid-template-columns:1fr}
+  .ficha-row{grid-template-columns:1fr 1fr}.ficha-row .w2,.ficha-row .w3,.ficha-row .w6{grid-column:1/-1}
+  .tf{grid-template-columns:1fr}
+  .brand small{display:none}.clock{font-size:1.25rem}.clock small{display:none}
+}
+
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:40;background:var(--bg)}
+
+/* pasos */
+.step[hidden]{display:none!important}
+.stepnav{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-top:52px;padding-top:20px;border-top:1px solid var(--line);flex-wrap:wrap}
+.stepnav span{color:var(--muted);font-size:.9rem}
+.stepnav .btn:disabled{visibility:hidden}
+.dayhd{list-style:none;margin:16px 0 2px;padding:0 0 4px 14px;font-family:var(--head);font-weight:700;font-size:.9rem;color:var(--text)}
+.dayhd:first-child{margin-top:0}
+.rail li.dayhd::before{display:none}
+.stage{padding:12px 16px;border-left:3px solid var(--accent);background:var(--panel-2);margin:8px 0;border-radius:0 8px 8px 0}
+.stage b{display:block;font-family:var(--head)}
+.stage .mono{display:block;margin:4px 0}
+.pyr{display:grid;gap:4px;justify-items:center;margin:16px 0 8px}
+.pyr button{border:1px solid var(--line);background:var(--panel);padding:9px 12px;border-radius:6px;cursor:pointer;text-align:center;font-weight:600;font-size:.92rem}
+.pyr button:hover{border-color:var(--accent)}
+.pyr button[aria-pressed="true"]{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.pyr small{display:block;font-weight:400;opacity:.85}
+.tip-box{min-height:3.6em;padding:12px 14px;border-radius:8px;background:var(--panel-2);border:1px solid var(--line);max-width:74ch}
+@media (max-width:620px){
+  .top{gap:10px}.brand{flex:1 1 0;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:.95rem}.clock{margin-left:0}
+}
+
+</style>
+</head>
+<body>
+
+<header class="top">
+  <button class="icon-btn menu-btn" id="menuBtn" aria-label="Abrir índice" aria-expanded="false">
+    <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 5h14M2 9h14M2 13h14"/></svg>
+  </button>
+  <div class="brand">ISTMO Cargo &amp; Logística<small>SOC, turno de noche</small></div>
+  <div class="pips" id="pips" aria-label="Insignias obtenidas"></div>
+  <div class="clock" aria-live="off"><small>hora del turno</small><span id="clock">03<span class="colon">:</span>10</span></div>
+  <button class="icon-btn" id="themeBtn" aria-label="Cambiar entre turno de noche y de día" title="Turno de noche / de día">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.8A9 9 0 1 1 11.2 3 7 7 0 0 0 21 12.8z"/></svg>
+  </button>
+</header>
+<div class="bar"><i id="bar"></i></div>
+
+<div class="shell">
+<nav class="rail" id="rail" aria-label="Índice de la semana">
+  <ol id="railList"></ol>
+  <div class="who" id="who"></div>
+</nav>
+
+<main>
+
+<!-- ========== LUNES ========== -->
+<section class="step hero" id="inicio" data-hour="190" data-label="Inicio del turno" data-day="Sesión del lunes">
+  <div>
+    <h1>Fuentes abiertas de inteligencia de amenazas</h1>
+    <p class="sub">Son las 3:10 de la madrugada y eres la única persona de guardia en el SOC de ISTMO Cargo &amp; Logística. Una IP que nadie conoce lleva media hora tocando la puerta del firewall. Tu trabajo esta semana: aprender a preguntarle al mundo lo que tu empresa no sabe.</p>
+    <small>Tópicos Especiales I, Unidad III, tema 3.3. Prepara el Taller #3 y el Proyecto #1.</small>
+    <form class="join" id="joinForm">
+      <input id="handle" type="text" maxlength="30" placeholder="Tu nombre o usuario de analista" aria-label="Tu nombre o usuario de analista" autocomplete="off">
+      <button class="btn" type="submit">Tomar el turno</button>
+    </form>
+    <p class="progress-text" style="margin-top:10px">Tu nombre se guarda solo en este navegador. Lo usamos en tu ticket y en tu ficha.</p>
+  </div>
+  <div class="ticket" aria-label="Ticket de ejemplo INC-0311">
+    <div class="t-head"><span>INC-0311</span><span>sin clasificar</span></div>
+    <span class="ln">fuente: firewall perimetral, Terminal Atlántico</span>
+    <div id="logLines"></div>
+    <div class="note" id="logNote"></div>
+  </div>
+</section>
+
+<section class="step block" id="alerta" data-hour="195" data-label="Llega la alerta" data-day="Sesión del lunes">
+  <div class="block-head">
+    <div><div class="hour">03:15</div><span class="day">Lunes</span></div>
+    <h2>Nadie en la empresa la conoce</h2>
+    <p>Ya sabes que la inteligencia de amenazas es información contextualizada que te permite decidir, y que un IOC es un dato concreto (IP, dominio, hash o URL) que indica que algo puede estar comprometido. Hoy responderemos una pregunta práctica: ¿dónde averiguas qué se sabe de un IOC?</p>
+  </div>
+  <p>Revisando el SIEM encuentras una dirección IP externa que intentó conectarse varias veces durante la madrugada. No está en ninguna lista de ISTMO Cargo y no hay un solo registro previo. Tu jefe de turno se encoge de hombros: <em>"Nosotros no sabemos nada de ella. Pero alguien en el mundo quizá sí."</em></p>
+  <div class="callout"><b>Memoria interna y memoria colectiva</b>
+    <p>Tu SIEM recuerda lo que pasó en tu red. Las fuentes abiertas recuerdan lo que le pasó a miles de redes más. Es como el grupo de WhatsApp del edificio: nadie vio al sospechoso del carro blanco, pero alguien del piso 9 ya lo había reportado.</p></div>
+  <div class="panel">
+    <h4>Pregunta de calentamiento: ¿qué haces primero con esa IP?</h4>
+    <div class="opts" id="poll"></div>
+    <div id="pollFb"></div>
+  </div>
+</section>
+
+<section class="step block" id="teoria" data-hour="205" data-label="Qué es lo que consultamos" data-day="Sesión del lunes">
+  <div class="block-head">
+    <div><div class="hour">03:25</div><span class="day">Lunes</span></div>
+    <h2>Antes de consultar: dato, información, inteligencia</h2>
+    <p>Un número en un log no es inteligencia. Se vuelve inteligencia cuando le sumas contexto y eso te permite decidir.</p>
+  </div>
+  <div class="panel" id="stages"></div>
+
+  <h3>Cómo nace la reputación de una IP</h3>
+  <p>Alguien (una empresa, un administrador, un investigador) ve en sus logs que una IP lo atacó y la reporta, con una categoría: escaneo de puertos, fuerza bruta, spam. Cuando mil personas hacen eso, la plataforma junta esos reportes en un número que resume cuánta confianza hay en que esa IP es abusiva. Esa es la "reputación".</p>
+  <p>Tres ideas para quedarte:</p>
+  <ul>
+    <li><b>Es una opinión de la comunidad, no un hecho de laboratorio.</b> Puede haber errores, reportes viejos o IP compartidas por miles de personas.</li>
+    <li><b>El puntaje mide confianza, no gravedad.</b> Un 97% significa "estamos muy seguros de que es abusiva", no "es gravísima".</li>
+    <li><b>Cada plataforma calcula a su manera.</b> Por eso dos fuentes pueden no coincidir, y por eso se contrastan.</li>
+  </ul>
+  <div class="callout warn"><b>Lo que estas fuentes no pueden decirte</b>
+    <p>No saben si esa IP te afecta a ti. Una IP con 100% de reputación mala que nunca tocó tu red es una nota al margen. Una IP con 0% que sí está probando tus puertos sigue siendo un caso. La reputación orienta, tu contexto decide.</p></div>
+  <div class="callout bad"><b>Consultar sí, contraatacar no</b>
+    <p>Preguntarle a una plataforma por una IP es seguro: el atacante no se entera. Escanear esa IP, abrir su sitio o "devolver el golpe" te pone en riesgo a ti y puede ser ilegal. El analista observa, documenta y decide.</p></div>
+</section>
+
+<section class="step block" id="arsenal" data-hour="215" data-label="El arsenal gratuito" data-day="Sesión del lunes">
+  <div class="block-head">
+    <div><div class="hour">03:35</div><span class="day">Lunes</span></div>
+    <h2>OSINT: cinco fuentes que cualquiera puede consultar</h2>
+    <p>3.3.1. <b>OSINT</b> (Open Source Intelligence) es inteligencia obtenida de fuentes públicas y abiertas. En seguridad, son servicios donde la comunidad consulta y comparte lo que sabe sobre IP, dominios, URL y archivos maliciosos.</p>
+  </div>
+  <p>Abre cada fuente para ver para qué sirve y cuándo la usarías en ISTMO Cargo. Hoy profundizamos en las dos primeras, que son las del Taller #3.</p>
+  <div class="src-list" id="srcList"></div>
+</section>
+
+<section class="step block" id="practica" data-hour="225" data-label="Práctica del arsenal" data-day="Sesión del lunes">
+  <div class="block-head">
+    <div><div class="hour">03:45</div><span class="day">Lunes</span></div>
+    <h2>¿A quién le preguntas?</h2>
+    <p>Dos ejercicios cortos para fijar quién hace qué.</p>
+  </div>
+  <h3>Calentamiento: empareja cada plataforma con su función</h3>
+  <div class="pareo" id="pareo"></div>
+  <p class="progress-text" id="pareoScore"></p>
+
+  <h3>Seis situaciones de un turno normal</h3>
+  <p>Elige la plataforma que abrirías primero. Algunas se solapan, y eso también se explica.</p>
+  <div class="panel" id="scen"></div>
+</section>
+
+<section class="step block" id="abuseipdb" data-hour="235" data-label="Reputación de una IP" data-day="Sesión del lunes">
+  <div class="block-head">
+    <div><div class="hour">03:55</div><span class="day">Lunes</span></div>
+    <h2>AbuseIPDB: ¿esta IP tiene antecedentes?</h2>
+    <p>3.3.2. Es una base de datos donde usuarios y organizaciones reportan las IP que hicieron algo abusivo: escaneos, fuerza bruta, spam. Al consultar una IP no recibes una opinión sino un puntaje y datos de contexto para que decidas tú.</p>
+  </div>
+  <p>Este es un reporte simulado (las IP pertenecen a rangos reservados para documentación, no existen en Internet). Cambia de caso y toca cada campo para ver qué significa y cómo se lee.</p>
+  <div class="split">
+    <div>
+      <div class="tools" id="abPresets" role="group" aria-label="Casos de ejemplo"></div>
+      <div class="rep" id="abRep"></div>
+    </div>
+    <div>
+      <div class="panel" style="margin-top:0">
+        <h4>¿Y si el puntaje fuera otro?</h4>
+        <input class="range" id="abRange" type="range" min="0" max="100" value="50" aria-label="abuseConfidenceScore de práctica">
+        <p id="abBand" style="margin:10px 0 0"></p>
+      </div>
+      <div class="callout warn"><b>Un 0 no siempre es verde</b>
+        <p>Puntaje 0 en una IP de lista blanca (un DNS público, por ejemplo) es verde. Puntaje 0 en una IP que nadie ha reportado nunca solo significa que nadie la ha visto: eso es gris.</p></div>
+    </div>
+  </div>
+</section>
+
+<section class="step block" id="virustotal" data-hour="250" data-label="Archivos, URL y dominios" data-day="Sesión del lunes">
+  <div class="block-head">
+    <div><div class="hour">04:10</div><span class="day">Lunes</span></div>
+    <h2>VirusTotal: setenta segundas opiniones en un clic</h2>
+    <p>3.3.2. Analiza un archivo, URL, dominio o IP con decenas de motores antivirus y de reputación a la vez, y te muestra cuántos coinciden en que es malicioso.</p>
+  </div>
+  <div class="split">
+    <div>
+      <div class="tools" id="vtPresets" role="group" aria-label="Casos de ejemplo"></div>
+      <div class="rep" id="vtRep"></div>
+    </div>
+    <div>
+      <div class="panel" style="margin-top:0">
+        <h4>Mueve las detecciones</h4>
+        <input class="range" id="vtRange" type="range" min="0" max="72" value="4" aria-label="Número de motores que detectan">
+        <p id="vtBand" style="margin:10px 0 0"></p>
+      </div>
+      <div class="callout"><b>Cada motor opina distinto</b>
+        <p>Los motores no son iguales ni se equivocan igual. Por eso 1 de 72 es una señal débil y 50 de 72 es una señal fuerte.</p></div>
+      <div class="callout"><b>Consultar no es abrir</b>
+        <p>Buscar un dominio en VirusTotal no lo visita desde tu red. Abrirlo en tu navegador sí. Con los indicadores sospechosos, consulta primero y no hagas clic nunca.</p></div>
+    </div>
+  </div>
+
+  <h3>Por qué se consulta el hash y no el archivo</h3>
+  <p>Un <b>hash</b> es una huella digital del archivo: siempre produce el mismo resultado para el mismo contenido y no se puede revertir al original. Por eso puedes preguntar por un archivo interno sin subirlo. Escribe cualquier texto (es el "contenido" del archivo) y mira su SHA-256. Después cambia una sola letra.</p>
+  <div class="panel">
+    <textarea id="hashIn" rows="2" aria-label="Contenido del archivo de práctica">factura_0311_ISTMO.pdf: contenido de prueba</textarea>
+    <div class="hashbox" id="hashA"></div>
+    <div class="tools"><button class="btn ghost" id="hashFlip" type="button">Cambiar una letra</button></div>
+    <div class="hashbox" id="hashB" hidden></div>
+    <p class="progress-text" id="hashNote"></p>
+  </div>
+  <div class="callout warn"><b>Para tu trabajo real</b>
+    <p>Los archivos que subes a un servicio público pueden quedar disponibles para otros usuarios de ese servicio. Una factura de un cliente de la Zona Libre de Colón no debería terminar ahí. Su hash sí puedes consultarlo sin riesgo.</p></div>
+</section>
+
+<section class="step block" id="cierre" data-hour="265" data-label="Cierre del lunes" data-day="Sesión del lunes">
+  <div class="block-head">
+    <div><div class="hour">04:25</div><span class="day">Lunes</span></div>
+    <h2>Verificación rápida y repaso</h2>
+    <p>Dos preguntas para confirmar que lo de hoy quedó claro.</p>
+  </div>
+  <div class="panel" id="qc"></div>
+  <h3>Lo que vimos hoy</h3>
+  <ul>
+    <li><b>3.3.1</b> OSINT: fuentes públicas donde se consulta lo que otros ya saben (AbuseIPDB, VirusTotal, URLhaus, OTX, MISP).</li>
+    <li><b>3.3.2</b> AbuseIPDB para IP (puntaje de 0 a 100). VirusTotal para hashes, URL y dominios (detecciones de varios motores).</li>
+  </ul>
+  <div class="callout"><b>Para el viernes</b>
+    <p>Crea tu cuenta gratuita en <a href="https://www.abuseipdb.com/" target="_blank" rel="noopener">AbuseIPDB</a> y en <a href="https://www.virustotal.com/" target="_blank" rel="noopener">VirusTotal</a>. La práctica del viernes las necesita.</p></div>
+</section>
+
+<!-- ========== VIERNES ========== -->
+<section class="step block" id="semaforo" data-hour="280" data-label="El semáforo del analista" data-day="Sesión del viernes">
+  <div class="block-head">
+    <div><div class="hour">04:40</div><span class="day">Viernes</span></div>
+    <h2>Un resultado no es una sentencia, es una pieza de evidencia</h2>
+    <p>El lunes aprendiste a consultar. Hoy aprendes lo que separa a un analista de alguien que copia números: leer el resultado con criterio y decidir qué hacer.</p>
+  </div>
+  <div class="signals">
+    <div><span class="sig rojo">Rojo</span><p>Probablemente malicioso. Puntaje alto (por ejemplo 75 o más), reportes recientes, varios motores de acuerdo.</p><p><b>Bloquear, buscar en el SIEM, escalar si corresponde.</b></p></div>
+    <div><span class="sig ambar">Ámbar</span><p>Dudoso. Pocos reportes, pocas detecciones, reportes viejos o fuentes que no coinciden.</p><p><b>Contrastar con otra fuente y con el contexto interno.</b></p></div>
+    <div><span class="sig verde">Verde</span><p>Sin señales de riesgo. Puntaje 0, sin detecciones, en lista blanca de un servicio legítimo.</p><p><b>No bloquear. Documentar la verificación.</b></p></div>
+    <div><span class="sig gris">Gris</span><p>Sin información. "No encontrado": nadie lo ha visto ni reportado.</p><p><b>Ausencia de datos no es sinónimo de seguro. Cautela.</b></p></div>
+  </div>
+  <div class="callout"><b>El ámbar tiene grados</b>
+    <p>Un dominio con 1 detección en 72 motores que pertenece a una red de contenido conocida es ámbar bajo (probable falso positivo). Un dominio creado hace dos días que imita el nombre de tu empresa, con 0 detecciones, es ámbar alto: no hay datos en contra, pero el contexto lo delata.</p></div>
+
+  <h3>Por qué los indicadores caducan: la pirámide del dolor</h3>
+  <p>El analista David Bianco ordenó los tipos de indicador según cuánto le duele al atacante que se los detecten. Toca cada nivel.</p>
+  <div class="pyr" id="pyr"></div>
+  <p class="tip-box" id="pyrTip"></p>
+  <p>Lo que consultas en AbuseIPDB y VirusTotal (IP, dominios, hashes) vive en la parte baja de la pirámide: es rápido de verificar y rápido de caducar. Por eso importa la fecha del último reporte, y por eso "no encontrado" no significa seguro.</p>
+</section>
+
+<section class="step block" id="triaje" data-hour="295" data-label="Simulador de triaje" data-day="Sesión del viernes">
+  <div class="block-head">
+    <div><div class="hour">04:55</div><span class="day">Viernes</span></div>
+    <h2>Ocho resultados, tu decisión</h2>
+    <p>Para cada caso elige el color y la acción. Los seis primeros son los de la clase. Los dos últimos son extras.</p>
+  </div>
+  <div class="panel" id="triage"></div>
+</section>
+
+<section class="step block" id="misterio" data-hour="310" data-label="Resolvemos el misterio" data-day="Sesión del viernes">
+  <div class="block-head">
+    <div><div class="hour">05:10</div><span class="day">Viernes</span></div>
+    <h2>Volvamos a la madrugada: cierra el ticket INC-0311</h2>
+    <p>La IP de las 3:00 a.m. sigue ahí. Investígala con lo que aprendiste. Necesitas consultar las dos fuentes abiertas y tu propio SIEM antes de decidir.</p>
+  </div>
+  <p>Todos los datos son de práctica. IP investigada: <code>203.0.113.77</code></p>
+  <div class="tools" id="invTools"></div>
+  <div class="console" id="invLog" aria-live="polite"><span class="h">Consola de investigación</span>Elige una herramienta para empezar.</div>
+  <div class="panel" id="invDecide" hidden>
+    <h4>Ya tienes evidencia de las tres fuentes. ¿Qué decides?</h4>
+    <div class="opts" id="invOpts"></div>
+    <div id="invFb"></div>
+  </div>
+  <div id="ticketOut"></div>
+</section>
+
+<section class="step block" id="higiene" data-hour="325" data-label="Buenas prácticas" data-day="Sesión del viernes">
+  <div class="block-head">
+    <div><div class="hour">05:25</div><span class="day">Viernes</span></div>
+    <h2>Seis hábitos que te hacen confiable</h2>
+    <p>3.3.3. Las fuentes abiertas son gratis, pero usarlas mal sale caro: decisiones apresuradas, datos filtrados, enlaces abiertos por error.</p>
+  </div>
+  <div id="practices"></div>
+
+  <h3>Neutralizador de enlaces</h3>
+  <p>Pega una URL, una IP o un correo y conviértelo en algo que nadie pueda abrir por accidente al leer tu reporte.</p>
+  <div class="panel">
+    <textarea id="dfIn" rows="2" aria-label="Texto a neutralizar">https://descargas-factura.example.com/pago.exe desde 203.0.113.77</textarea>
+    <div class="tools"><button class="btn" id="dfGo" type="button">Neutralizar</button><button class="btn ghost" id="dfBack" type="button">Revertir</button><button class="btn ghost" id="dfCopy" type="button">Copiar resultado</button></div>
+    <div class="hashbox" id="dfOut">Aquí aparece el resultado.</div>
+  </div>
+
+  <div class="callout"><b>No lo confundas con el TLP</b>
+    <p>Cuando compartas indicadores con otros equipos verás el TLP (Traffic Light Protocol), que también usa colores. El TLP dice con quién puedes compartir una información (por ejemplo, TLP:RED solo con las personas nombradas, TLP:CLEAR con cualquiera). Nuestro semáforo dice qué tan riesgoso es un indicador. Comparten colores y nada más.</p></div>
+
+  <h3>Verdadero o falso, y por qué</h3>
+  <div class="panel" id="tf"></div>
+</section>
+
+<section class="step block" id="mision" data-hour="340" data-label="Misión de campo" data-day="Sesión del viernes">
+  <div class="block-head">
+    <div><div class="hour">05:40</div><span class="day">Viernes</span></div>
+    <h2>Misión de campo con las plataformas reales</h2>
+    <p>Ahora lo haces con AbuseIPDB y VirusTotal de verdad, en parejas (unos 12 minutos). Solo con indicadores seguros pensados para practicar.</p>
+  </div>
+  <div class="callout bad"><b>Regla de oro</b>
+    <p>Nunca practiques con indicadores reales de un incidente ni subas archivos internos a estos servicios.</p></div>
+  <ul class="steps" id="steps"></ul>
+
+  <h3>Detective de informes</h3>
+  <p>Un compañero te pasa el informe de su turno para que lo revises. Tiene <b>5 errores de método</b>. Marca las líneas que cambiarías y pulsa Revisar. Cuidado: algunas líneas están bien.</p>
+  <div class="panel" id="det"></div>
+</section>
+
+<section class="step block" id="ficha" data-hour="350" data-label="Tu ficha de verificación" data-day="Sesión del viernes">
+  <div class="block-head">
+    <div><div class="hour">05:50</div><span class="day">Viernes</span></div>
+    <h2>Tu ficha de verificación</h2>
+    <p>Es la entrega de la semana y evidencia del Portafolio Estudiantil.</p>
+  </div>
+  <p>Una ficha por indicador: indicador, tipo, fuente, fecha y hora, resultado, semáforo y acción recomendada, más una frase sobre una limitación del resultado (por ejemplo la fecha de los reportes o un posible falso positivo). Puedes agregar filas extra.</p>
+  <div id="fichaRows"></div>
+  <div class="tools">
+    <button class="btn ghost" id="addRow" type="button">Agregar fila</button>
+    <button class="btn" id="mkFicha" type="button">Generar ficha</button>
+  </div>
+  <div id="fichaOut" hidden>
+    <pre class="out" id="fichaPre"></pre>
+    <div class="tools">
+      <button class="btn" id="fCopy" type="button">Copiar</button>
+      <button class="btn ghost" id="fDl" type="button">Descargar .md</button>
+      <button class="btn ghost" id="fPrint" type="button">Imprimir o guardar PDF</button>
+    </div>
+  </div>
+</section>
+
+<section class="step block" id="relevo" data-hour="360" data-label="Relevo de turno" data-day="Sesión del viernes">
+  <div class="block-head">
+    <div><div class="hour">06:00</div><span class="day">Viernes</span></div>
+    <h2>Llega el relevo: calibra y entrega</h2>
+    <p>Amanece. Antes de entregar el turno, comprueba si estás listo para el Taller #3.</p>
+  </div>
+
+  <h3>Test de calibración</h3>
+  <div class="panel" id="test"></div>
+
+  <h3>Lo que te llevas</h3>
+  <ol>
+    <li>OSINT: fuentes públicas donde se consulta lo que otros ya saben sobre un indicador.</li>
+    <li>AbuseIPDB para IP (puntaje de 0 a 100). VirusTotal para hashes, URL, dominios e IP (detecciones de varios motores).</li>
+    <li>El semáforo: rojo, ámbar, verde y gris. Un resultado es evidencia, no sentencia.</li>
+    <li>Buenas prácticas: contrastar, mirar fechas, cuidar la privacidad, neutralizar enlaces y documentar.</li>
+    <li>"No encontrado" no significa seguro.</li>
+  </ol>
+
+  <h3>Tus insignias</h3>
+  <div class="badgewall" id="badgeWall"></div>
+
+  <h3>Cómo se conecta con tus evaluaciones</h3>
+  <div class="split">
+    <div><b>Taller #3.</b> Clasificar 8 indicadores (IP, dominio, URL, hash), verificar su reputación en AbuseIPDB y VirusTotal y relacionarlos con eventos del SIEM. Incluye indicadores sin historial: el caso gris.</div>
+    <div><b>Proyecto #1.</b> Tu grupo recibe un caso distinto (phishing, malware, filtración, fraude o acceso físico), verifica sus 7 indicadores, reconstruye la línea de tiempo y entrega un informe ejecutivo. Una variante incluye un hash real de prueba con detecciones auténticas.</div>
+  </div>
+  <p style="margin-top:14px">La habilidad común: consultar, leer con criterio, contrastar, documentar y decidir.</p>
+
+  <div class="callout"><b>Qué entregar en Moodle antes del próximo lunes</b>
+    <p>Tu ficha de verificación (la descargas en el paso anterior). Es evidencia del Portafolio Estudiantil.</p></div>
+
+  <h3>Próxima semana</h3>
+  <p><b>3.4 Aplicación básica de IOC en la detección y Taller #3.</b> Cerramos la Unidad III: cómo relacionar un IOC verificado con los eventos de tu SIEM y cómo documentar tus hallazgos. Avanza también con el Proyecto #1 en tu grupo.</p>
+
+  <h3>Explora por tu cuenta (gratis)</h3>
+  <p><a href="https://www.abuseipdb.com/" target="_blank" rel="noopener">AbuseIPDB</a>, <a href="https://www.virustotal.com/" target="_blank" rel="noopener">VirusTotal</a>, <a href="https://urlhaus.abuse.ch/" target="_blank" rel="noopener">URLhaus</a>, <a href="https://otx.alienvault.com/" target="_blank" rel="noopener">AlienVault OTX</a> y <a href="https://www.misp-project.org/" target="_blank" rel="noopener">Proyecto MISP</a>.</p>
+
+  <h3>Bibliografía</h3>
+  <div class="refs">
+    <p>Johnson, C., Badger, M., Waltermire, D., Snyder, J., &amp; Skorupka, C. (2016). <i>Guide to cyber threat information sharing</i> (NIST Special Publication 800-150). National Institute of Standards and Technology. https://doi.org/10.6028/NIST.SP.800-150</p>
+    <p>AbuseIPDB. (2024). <i>API v2 documentation for developers</i>. https://www.abuseipdb.com/api</p>
+    <p>VirusTotal. (2024). <i>VirusTotal documentation</i>. https://docs.virustotal.com/</p>
+    <p>MISP Project. (s.f.). <i>MISP: Open source threat intelligence and sharing platform</i>. https://www.misp-project.org/</p>
+    <p>abuse.ch. (s.f.). <i>URLhaus: Malware URL exchange</i>. https://urlhaus.abuse.ch/</p>
+    <p>Costa-Gazcón, V. (2021). <i>Practical threat intelligence and data-driven threat hunting: A hands-on guide to threat hunting with the ATT&amp;CK framework and open source tools</i>. Packt Publishing.</p>
+    <p>Bianco, D. (2013). <i>The pyramid of pain</i>. Enterprise Detection &amp; Response. https://detect-respond.blogspot.com/2013/03/the-pyramid-of-pain.html</p>
+    <p>FIRST. (s.f.). <i>Traffic Light Protocol (TLP)</i>. https://www.first.org/tlp/</p>
+  </div>
+  <footer>Tópicos Especiales I, Licenciatura en Ciberseguridad, Universidad Tecnológica de Panamá. ISTMO Cargo &amp; Logística es una empresa ficticia creada para esta asignatura. Todas las IP, dominios y hashes de las simulaciones son de práctica. <button class="btn ghost" id="resetAll" type="button" style="margin-left:6px">Borrar mi progreso</button></footer>
+</section>
+
+</main>
+</div>
+<div class="toast" id="toast" role="status"></div>
+<script>
+/* SHA-256 en JS puro (texto UTF-8). Lo usan la pagina del estudiante y la del docente. */
+const sha256 = (() => {
+  const K = [], H0 = [];
+  let pc = 0;
+  for (let c = 2; pc < 64; c++) {
+    let prime = true;
+    for (let d = 2; d * d <= c; d++) if (c % d === 0) { prime = false; break; }
+    if (!prime) continue;
+    if (pc < 8) H0[pc] = (Math.pow(c, 0.5) % 1) * 4294967296 | 0;
+    K[pc] = (Math.pow(c, 1 / 3) % 1) * 4294967296 | 0;
+    pc++;
+  }
+  const rr = (x, n) => (x >>> n) | (x << (32 - n));
+  return function (msg) {
+    const b = unescape(encodeURIComponent(msg)), n = b.length, w = [];
+    for (let i = 0; i < n; i++) w[i >> 2] |= b.charCodeAt(i) << (24 - 8 * (i & 3));
+    w[n >> 2] |= 0x80 << (24 - 8 * (n & 3));
+    const total = (((n + 8) >> 6) + 1) * 16;
+    for (let i = 0; i < total; i++) if (w[i] === undefined) w[i] = 0;
+    w[total - 1] = n * 8;
+    const S = H0.slice();
+    for (let o = 0; o < total; o += 16) {
+      const W = w.slice(o, o + 16);
+      let [a, b2, c, d, e, f, g, h] = S;
+      for (let i = 0; i < 64; i++) {
+        if (i >= 16) {
+          const w15 = W[i - 15], w2 = W[i - 2];
+          W[i] = (W[i - 16] + (rr(w15, 7) ^ rr(w15, 18) ^ (w15 >>> 3)) + W[i - 7] + (rr(w2, 17) ^ rr(w2, 19) ^ (w2 >>> 10))) | 0;
+        }
+        const t1 = (h + (rr(e, 6) ^ rr(e, 11) ^ rr(e, 25)) + ((e & f) ^ (~e & g)) + K[i] + W[i]) | 0;
+        const t2 = ((rr(a, 2) ^ rr(a, 13) ^ rr(a, 22)) + ((a & b2) ^ (a & c) ^ (b2 & c))) | 0;
+        h = g; g = f; f = e; e = (d + t1) | 0; d = c; c = b2; b2 = a; a = (t1 + t2) | 0;
+      }
+      const v = [a, b2, c, d, e, f, g, h];
+      for (let i = 0; i < 8; i++) S[i] = (S[i] + v[i]) | 0;
+    }
+    return S.map(x => (x >>> 0).toString(16).padStart(8, '0')).join('');
+  };
+})();
+
+/* Bandera unica por estudiante: depende del usuario que escribio en la pagina. */
+function flagFor(handle, id) {
+  return 'ISTMO{' + sha256('s11|' + String(handle).trim().toLowerCase() + '|' + id).slice(0, 8) + '}';
+}
+
+</script>
+<script>
+(() => {
+'use strict';
+const $ = (s, r = document) => r.querySelector(s);
+const $$ = (s, r = document) => [...r.querySelectorAll(s)];
+const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+const EICAR = '275a021bbfb6489e54d471899f7db9d1663fc695ec2fe2a2c4538aabf651fd0f';
+
+/* ---------- estado ---------- */
+const KEY = 'istmo-soc-s11-v1';
+let S = { handle: '', theme: 'dark', poll: null, pareo: {}, scen: {}, cases: {}, inv: { used: [], done: false }, tf: {}, steps: {}, flagAns: {}, flagOk: {}, rows: null, test: {}, testDone: false, badges: {}, ficha: false };
+try { Object.assign(S, JSON.parse(localStorage.getItem(KEY) || '{}')); } catch (e) {}
+const save = () => { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) {} };
+
+/* ---------- insignias ---------- */
+const BADGES = [
+  { id: 'arsenal', n: 'Arsenal completo', d: 'Pareo y seis situaciones resueltas' },
+  { id: 'ojo', n: 'Ojo de analista', d: 'Al menos 7 de 8 colores acertados en el triaje' },
+  { id: 'misterio', n: 'Misterio resuelto', d: 'Cerraste el ticket INC-0311' },
+  { id: 'higiene', n: 'Manos limpias', d: '4 de 4 en verdadero o falso' },
+  { id: 'ficha', n: 'Ficha lista', d: 'Generaste tu ficha de verificación' },
+  { id: 'detective', n: 'Ojo de detective', d: 'Encontraste los 5 errores del informe' },
+  { id: 'calibrado', n: 'Calibrado', d: '6 de 8 o más en el test' }
+];
+let toastT;
+function toast(msg) { const t = $('#toast'); t.textContent = msg; t.classList.add('show'); clearTimeout(toastT); toastT = setTimeout(() => t.classList.remove('show'), 3200); }
+function award(id) {
+  if (S.badges[id]) return;
+  S.badges[id] = true; save(); renderBadges();
+  toast('Insignia obtenida: ' + BADGES.find(b => b.id === id).n);
+}
+function renderBadges() {
+  $('#pips').innerHTML = BADGES.map(b => `<i class="${S.badges[b.id] ? 'on' : ''}" title="${esc(b.n)}"></i>`).join('');
+  $('#badgeWall').innerHTML = BADGES.map(b => `<div class="bd ${S.badges[b.id] ? 'on' : ''}"><b>${esc(b.n)}</b>${esc(b.d)}</div>`).join('');
+}
+function needHandle() {
+  if (S.handle) return true;
+  toast('Primero escribe tu nombre de analista al inicio de la página.');
+  goStep(0); setTimeout(() => $('#handle').focus(), 100);
+  return false;
+}
+
+/* ---------- tema y pasos ---------- */
+function applyTheme() { document.documentElement.setAttribute('data-theme', S.theme); }
+applyTheme();
+$('#themeBtn').onclick = () => { S.theme = S.theme === 'dark' ? 'light' : 'dark'; applyTheme(); save(); };
+
+const steps = $$('.step'); let cur = 0, clockT = 190, clockAnim;
+const hhmm = m => [String(Math.floor(m / 60)).padStart(2, '0'), String(m % 60).padStart(2, '0')];
+$('#railList').innerHTML = steps.map((s, k) => {
+  const [hh, mm] = hhmm(+s.dataset.hour);
+  const day = (k === 0 || steps[k - 1].dataset.day !== s.dataset.day) ? `<li class="dayhd">${esc(s.dataset.day)}</li>` : '';
+  return day + `<li data-k="${k}"><a href="#${s.id}" data-k="${k}"><b>${hh}:${mm}</b>${esc(s.dataset.label)}</a></li>`;
+}).join('');
+steps.forEach((s, k) => {
+  const prev = steps[k - 1], next = steps[k + 1];
+  s.insertAdjacentHTML('beforeend', `<nav class="stepnav" aria-label="Pasos de la semana"><button class="btn ghost" data-d="-1" type="button" ${prev ? '' : 'disabled'}>Anterior</button><span>Paso ${k + 1} de ${steps.length}</span>${next ? `<button class="btn" data-d="1" type="button">Siguiente: ${esc(next.dataset.label)}</button>` : '<span>Fin del turno</span>'}</nav>`);
+});
+document.addEventListener('click', e => { const b = e.target.closest('.stepnav [data-d]'); if (b) goStep(cur + +b.dataset.d); });
+$('#railList').addEventListener('click', e => { const a = e.target.closest('a[data-k]'); if (!a) return; e.preventDefault(); goStep(+a.dataset.k); });
+$('#menuBtn').onclick = () => { const r = $('#rail'); const o = r.classList.toggle('open'); $('#menuBtn').setAttribute('aria-expanded', o); };
+function closeMenu() { $('#rail').classList.remove('open'); $('#menuBtn').setAttribute('aria-expanded', 'false'); }
+function renderWho() { $('#who').innerHTML = S.handle ? `Analista de guardia<b>${esc(S.handle)}</b>` : 'Sin analista asignado'; if (S.handle) $('#handle').value = S.handle; }
+
+function setClock(t) { const [h, m] = hhmm(t); $('#cH').textContent = h; $('#cM').textContent = m; }
+function tweenClock(to) {
+  cancelAnimationFrame(clockAnim);
+  if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) { clockT = to; setClock(to); return; }
+  const from = clockT, t0 = performance.now();
+  const tick = now => { const f = Math.min(1, (now - t0) / 700); clockT = from + (to - from) * f; setClock(Math.round(clockT)); if (f < 1) clockAnim = requestAnimationFrame(tick); };
+  clockAnim = requestAnimationFrame(tick);
+}
+const clockEl = $('#clock');
+clockEl.innerHTML = '<span id="cH">03</span><span class="colon">:</span><span id="cM">10</span>';
+function goStep(i, noScroll) {
+  i = Math.max(0, Math.min(steps.length - 1, i)); cur = i; S.step = i; save();
+  steps.forEach((s, k) => { s.hidden = k !== i; });
+  $$('#railList li[data-k]').forEach(li => { const k = +li.dataset.k; li.classList.toggle('active', k === i); li.classList.toggle('seen', k < i); });
+  tweenClock(+steps[i].dataset.hour);
+  $('#bar').style.width = (i / (steps.length - 1) * 100) + '%';
+  try { history.replaceState(null, '', '#' + steps[i].id); } catch (e) {}
+  closeMenu();
+  if (!noScroll) window.scrollTo(0, 0);
+  const hd = steps[i].querySelector('h1,h2'); if (hd) { hd.setAttribute('tabindex', '-1'); hd.focus({ preventScroll: true }); }
+}
+window.addEventListener('hashchange', () => { const k = steps.findIndex(s => '#' + s.id === location.hash); if (k >= 0 && k !== cur) goStep(k); });
+document.addEventListener('keydown', e => {
+  if (e.altKey || e.ctrlKey || e.metaKey || e.shiftKey) return; if (/INPUT|TEXTAREA|SELECT/.test(e.target.tagName)) return;
+  if (e.key === 'ArrowRight') goStep(cur + 1); if (e.key === 'ArrowLeft') goStep(cur - 1);
+});
+
+/* ---------- hero ---------- */
+const LOG = [
+  ['02:41:07', 'DENY tcp 203.0.113.77:51422 > 10.20.0.5:3389'],
+  ['02:41:09', 'DENY tcp 203.0.113.77:51431 > 10.20.0.5:22'],
+  ['02:58:33', 'DENY tcp 203.0.113.77:40118 > 10.20.0.5:3389'],
+  ['03:09:12', 'DENY tcp 203.0.113.77:40302 > 10.20.0.5:22']
+];
+(function heroLog() {
+  const box = $('#logLines'), note = $('#logNote');
+  const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const add = k => { box.insertAdjacentHTML('beforeend', `<span class="ln"><span style="color:#8fa6bf">${LOG[k][0]}</span> <span class="deny">${LOG[k][1]}</span></span>`); };
+  const fin = () => { note.innerHTML = 'Ningún sistema interno la reconoce.<span class="cursor"></span>'; };
+  if (reduce) { LOG.forEach((_, k) => add(k)); fin(); return; }
+  let k = 0; const step = () => { if (k < LOG.length) { add(k++); setTimeout(step, 650); } else fin(); }; setTimeout(step, 500);
+})();
+$('#joinForm').onsubmit = e => {
+  e.preventDefault(); const v = $('#handle').value.trim(); if (!v) { $('#handle').focus(); return; }
+  S.handle = v; save(); renderWho(); toast('Turno iniciado, ' + v + '.'); goStep(1);
+};
+
+/* ---------- encuesta de apertura ---------- */
+const POLL = [
+  ['La busco en Google y veo qué sale', 'No es mal instinto, pero Google no te da un puntaje ni reportes estructurados con fecha. Existen servicios hechos exactamente para esto.'],
+  ['La bloqueo y sigo con lo mío', 'Bloquear puede ser lo correcto al final, pero sin saber qué es no sabes si bloqueas a un atacante o a un proveedor legítimo (o a un cliente de la Zona Libre de Colón).'],
+  ['Pregunto a bases de datos públicas de reputación', 'Eso es justo lo que vamos a aprender. Y también a no creerles a ciegas.'],
+  ['Espero a ver si vuelve', 'Esperar es renunciar a la detección temprana, uno de los cuatro pilares de la Semana 1.']
+];
+$('#poll').innerHTML = POLL.map((p, i) => `<button class="opt" data-i="${i}">${esc(p[0])}</button>`).join('');
+function showPoll() { $$('#poll .opt').forEach(b => b.classList.toggle('sel', +b.dataset.i === S.poll)); $('#pollFb').innerHTML = S.poll == null ? '' : `<div class="fb"><p>${esc(POLL[S.poll][1])}</p></div>`; }
+$('#poll').onclick = e => { const b = e.target.closest('.opt'); if (!b) return; S.poll = +b.dataset.i; save(); showPoll(); };
+showPoll();
+
+/* ---------- arsenal ---------- */
+const SRC = {
+  abuse: { n: 'AbuseIPDB', tag: 'IP sospechosas', what: 'Reputación de una IP según los reportes de la comunidad. Devuelve un puntaje de 0 a 100 y datos de contexto.', use: 'Una IP extraña golpea el firewall de la Terminal Atlántico.', url: 'https://www.abuseipdb.com/' },
+  vt: { n: 'VirusTotal', tag: 'Hashes, URL, dominios', what: 'Analiza archivos, URL, dominios e IP con decenas de motores a la vez y muestra cuántos coinciden.', use: 'Cuarentena de un adjunto en facturación: consultas su hash para ver si otros motores lo conocen.', url: 'https://www.virustotal.com/' },
+  urlhaus: { n: 'URLhaus', tag: 'URL', what: 'Repositorio de URL que distribuyen malware, mantenido por abuse.ch.', use: 'Un correo de "factura" trae un enlace de descarga y quieres saber si esa URL ya está catalogada.', url: 'https://urlhaus.abuse.ch/' },
+  otx: { n: 'AlienVault OTX', tag: 'Todos los tipos', what: 'Comunidad abierta que comparte "pulsos": paquetes de indicadores asociados a una campaña o amenaza.', use: 'Lees que hay una campaña contra empresas de logística y quieres todos los indicadores que la comunidad asoció a ella.', url: 'https://otx.alienvault.com/' },
+  misp: { n: 'MISP', tag: 'Intercambio entre equipos', what: 'Plataforma de código abierto para compartir indicadores de forma estructurada entre organizaciones.', use: 'Tu SOC y el de otro operador portuario quieren intercambiar IOC de manera ordenada.', url: 'https://www.misp-project.org/' }
+};
+$('#srcList').innerHTML = Object.entries(SRC).map(([k, s]) => `<div class="src"><button aria-expanded="false" data-k="${k}"><b>${esc(s.n)}</b><span>${esc(s.tag)}</span></button><div class="more"><p>${esc(s.what)}</p><p><b>En ISTMO Cargo:</b> ${esc(s.use)}</p><a href="${s.url}" target="_blank" rel="noopener">Abrir ${esc(s.n)}</a></div></div>`).join('');
+$('#srcList').onclick = e => { const b = e.target.closest('button[data-k]'); if (!b) return; const open = b.getAttribute('aria-expanded') !== 'true'; b.setAttribute('aria-expanded', open); b.nextElementSibling.classList.toggle('open', open); };
+
+const PAREO = [
+  ['Plataforma de código abierto para compartir indicadores entre equipos.', 'misp'],
+  ['Analiza archivos, URL, dominios e IP con decenas de motores a la vez.', 'vt'],
+  ['Comunidad abierta donde se comparten indicadores de amenazas.', 'otx'],
+  ['Reputación de direcciones IP según reportes de la comunidad.', 'abuse'],
+  ['Repositorio de URL que distribuyen malware.', 'urlhaus']
+];
+const opts = Object.entries(SRC).map(([k, s]) => `<option value="${k}">${esc(s.n)}</option>`).join('');
+$('#pareo').innerHTML = PAREO.map((p, i) => `<label><span>${esc(p[0])}</span><select data-i="${i}"><option value="">Elige una plataforma</option>${opts}</select></label>`).join('');
+function pareoScore() {
+  const n = PAREO.filter((p, i) => S.pareo[i] === p[1]).length;
+  $('#pareoScore').textContent = `Aciertos: ${n} de 5`; checkArsenal();
+}
+$$('#pareo select').forEach(sel => {
+  const i = +sel.dataset.i; if (S.pareo[i]) { sel.value = S.pareo[i]; sel.classList.add(S.pareo[i] === PAREO[i][1] ? 'right' : 'wrong'); }
+  sel.onchange = () => { S.pareo[i] = sel.value; sel.classList.remove('right', 'wrong'); if (sel.value) sel.classList.add(sel.value === PAREO[i][1] ? 'right' : 'wrong'); save(); pareoScore(); };
+});
+
+const SCEN = [
+  ['Una IP desconocida escanea el firewall de la Terminal Pacífico durante la madrugada.', 'abuse', 'AbuseIPDB está hecha para reputación de IP. VirusTotal también acepta IP y serviría de segunda opinión.'],
+  ['Un empleado de facturación recibió un enlace a una supuesta "factura.exe" alojada en un sitio web y quieres saber si esa URL ya está catalogada como distribuidora de malware.', 'urlhaus', 'URLhaus se especializa en URL que reparten malware. VirusTotal también analiza URL y es buen segundo paso.'],
+  ['El antivirus puso en cuarentena un adjunto. Tienes su hash SHA-256 y quieres saber si otros motores lo reconocen.', 'vt', 'Para hashes de archivos, VirusTotal: basta el hash, no hace falta subir el adjunto.'],
+  ['Tu SOC quiere intercambiar indicadores de forma estructurada con el SOC de otro operador portuario.', 'misp', 'MISP es la plataforma pensada para compartir indicadores entre equipos.'],
+  ['Lees sobre una campaña contra empresas de logística y quieres ver los indicadores que la comunidad asoció a ella.', 'otx', 'OTX agrupa indicadores en pulsos por campaña, justo lo que buscas.'],
+  ['Llegó un correo con un dominio que imita el nombre de ISTMO Cargo. ¿Qué opinan muchos motores a la vez?', 'vt', 'VirusTotal analiza dominios con decenas de motores. Ojo: si tiene 0 detecciones, eso no lo exculpa, porque puede ser muy nuevo.']
+];
+let scenCur = 0;
+function drawScen() {
+  const box = $('#scen'); const solved = Object.keys(S.scen).length;
+  while (scenCur < SCEN.length && S.scen[scenCur]) scenCur++;
+  if (scenCur >= SCEN.length) { box.innerHTML = `<p><b>Seis de seis.</b> Ya sabes a quién preguntar según el tipo de indicador.</p><button class="btn ghost" id="scenRe" type="button">Repetir</button>`; $('#scenRe').onclick = () => { S.scen = {}; scenCur = 0; save(); drawScen(); }; checkArsenal(); return; }
+  const s = SCEN[scenCur];
+  box.innerHTML = `<p class="progress-text">Situación ${scenCur + 1} de 6</p><p>${esc(s[0])}</p><div class="tools">${Object.entries(SRC).map(([k, v]) => `<button class="chip" data-k="${k}">${esc(v.n)}</button>`).join('')}</div><div id="scenFb"></div>`;
+  box.onclick = e => {
+    const b = e.target.closest('.chip'); if (!b) return; const ok = b.dataset.k === s[1];
+    if (ok) { S.scen[scenCur] = true; save(); $('#scenFb').innerHTML = `<div class="fb good"><p><span class="ok">Correcto.</span> ${esc(s[2])}</p></div><div class="tools"><button class="btn" id="scenNext" type="button">Siguiente situación</button></div>`; $$('.chip', box).forEach(c => c.disabled = true); $('#scenNext').onclick = () => { scenCur++; drawScen(); }; }
+    else $('#scenFb').innerHTML = `<div class="fb bad"><p><span class="no">No es la mejor primera opción.</span> Fíjate en el tipo de indicador que tienes en la mano y en qué plataforma se especializa en ese tipo. Inténtalo otra vez.</p></div>`;
+  };
+}
+function checkArsenal() { if (PAREO.every((p, i) => S.pareo[i] === p[1]) && SCEN.every((_, i) => S.scen[i])) award('arsenal'); }
+
+/* ---------- AbuseIPDB ---------- */
+const AB = [
+  { label: 'Sin historial', ip: '203.0.113.10', score: 0, reports: '0', last: 'nunca', isp: 'Proveedor residencial (simulado)', usage: 'Fixed Line ISP', tor: 'No', wl: 'No', sem: 'gris', read: 'Puntaje 0, cero reportes y sin lista blanca: nadie la ha visto. Eso es gris, no verde.' },
+  { label: 'Escáner activo', ip: '198.51.100.23', score: 97, reports: '1.432', last: 'hace 3 horas', isp: 'Hosting masivo (simulado)', usage: 'Data Center/Web Hosting/Transit', tor: 'No', wl: 'No', sem: 'rojo', read: 'Puntaje altísimo, miles de reportes y el último de hoy. Rojo: bloquear y buscar en el SIEM.' },
+  { label: 'Nodo Tor', ip: '192.0.2.88', score: 38, reports: '311', last: 'hace 1 día', isp: 'Relevo de red Tor (simulado)', usage: 'Tor Exit Node', tor: 'Sí', wl: 'No', sem: 'ambar', read: 'Tor no es malicioso por sí mismo, pero nadie legítimo suele entrar al TOS de un puerto por ahí. Ámbar: aquí pesa más tu contexto interno que el número.' },
+  { label: 'Servicio conocido', ip: '198.51.100.53', score: 0, reports: '12', last: 'hace 8 meses', isp: 'Servicio DNS público (simulado)', usage: 'Data Center/Web Hosting/Transit', tor: 'No', wl: 'Sí', sem: 'verde', read: 'Puntaje 0 y lista blanca: servicio legítimo conocido. Verde: no bloquear, documentar.' }
+];
+const COL = { rojo: 'var(--red)', ambar: 'var(--amber)', verde: 'var(--green)', gris: 'var(--gray)' };
+const NOM = { rojo: 'Rojo', ambar: 'Ámbar', verde: 'Verde', gris: 'Gris' };
+const ABTIP = {
+  score: 'abuseConfidenceScore: de 0 a 100, qué tan seguro es que la IP sea abusiva. Cerca de 0, limpia; cerca de 100, muy probable. Es una guía, no una sentencia.',
+  reports: 'totalReports: cuántas veces la reportaron. Muchos reportes de muchos usuarios distintos pesan más que uno solo repetido.',
+  last: 'Último reporte: la fecha cambia todo. Reportes de hoy son una alerta; reportes de hace años pueden estar obsoletos.',
+  isp: 'País e ISP: a quién pertenece la IP. Un hosting masivo suele alquilar servidores a cualquiera, incluidos atacantes.',
+  usage: 'Tipo de uso: residencial, centro de datos, CDN, Tor... ayuda a interpretar si es normal que esa IP origine tráfico hacia ti.',
+  tor: 'isTor: indica si es un nodo de la red de anonimato Tor. No es malicioso en sí, pero cambia cómo lo interpretas.',
+  wl: 'isWhitelisted: si está en lista blanca porque es un servicio legítimo conocido (un DNS público, por ejemplo).'
+};
+let abI = 1;
+$('#abPresets').innerHTML = AB.map((a, i) => `<button class="chip" data-i="${i}" aria-pressed="${i === abI}">${esc(a.label)}</button>`).join('');
+function drawAb(tipKey) {
+  const a = AB[abI];
+  $$('#abPresets .chip').forEach((c, i) => c.setAttribute('aria-pressed', i === abI));
+  const f = (k, l, v) => `<li><button data-k="${k}" class="${tipKey === k ? 'on' : ''}"><span>${l}</span><b>${esc(v)}</b></button></li>`;
+  $('#abRep').innerHTML = `<div class="rep-head"><span class="mono">${a.ip}</span><span class="sig ${a.sem}">${NOM[a.sem]}</span></div>
+  <div class="rep-main"><button class="meter ${tipKey === 'score' ? 'on' : ''}" data-k="score" style="--v:${a.score};--c:${COL[a.sem]}" aria-label="abuseConfidenceScore ${a.score}"><b>${a.score}%</b></button>
+  <ul class="fields">${f('reports', 'totalReports', a.reports)}${f('last', 'último reporte', a.last)}${f('isp', 'ISP', a.isp)}${f('usage', 'tipo de uso', a.usage)}${f('tor', 'isTor', a.tor)}${f('wl', 'isWhitelisted', a.wl)}</ul></div>
+  <p class="tip">${tipKey ? esc(ABTIP[tipKey]) : esc(a.read)}</p>`;
+}
+$('#abPresets').onclick = e => { const c = e.target.closest('.chip'); if (!c) return; abI = +c.dataset.i; drawAb(); };
+$('#abRep').onclick = e => { const b = e.target.closest('[data-k]'); if (b) drawAb(b.dataset.k); };
+function abBand() {
+  const v = +$('#abRange').value;
+  const t = v < 10 ? 'Casi limpia. Sin más datos no basta para actuar: mira el número de reportes y la fecha.' : v < 50 ? 'Zona gris. Hay reportes, pero pocos o dispersos. Ámbar: contrasta con otra fuente.' : v < 75 ? 'Sospechosa. Contrasta con VirusTotal y con tu SIEM antes de bloquear.' : 'Muy probablemente abusiva. Rojo si los reportes son recientes. Si el último tiene años, baja un escalón.';
+  $('#abBand').innerHTML = `<b class="mono">${v}</b> &nbsp; ${t}`;
+}
+$('#abRange').oninput = abBand; abBand(); drawAb();
+
+/* ---------- VirusTotal ---------- */
+const Y = 72;
+const VT = [
+  { label: 'Archivo limpio', det: 0, community: '+312 votos de inofensivo', first: 'hace 6 años', last: 'hace 2 horas', rel: 'Distribuido por un fabricante conocido (simulado)', sem: 'verde', read: '0 de 72, comunidad a favor y muchos años de historia. Verde, siempre que el contexto también cuadre.' },
+  { label: 'Dudoso', det: 4, community: '2 votos maliciosos, 1 inofensivo', first: 'hace 11 días', last: 'hace 1 día', rel: 'Descargado desde instalador-gratis[.]example', sem: 'ambar', read: '4 de 72 y reciente: puede ser un falso positivo o una amenaza nueva. Ámbar: contrasta.' },
+  { label: 'Troyano conocido', det: 58, community: '-47 votos (malicioso)', first: 'hace 3 días', last: 'hace 3 horas', rel: 'Se comunica con 198.51.100.23. Suelta el archivo dropper.dll (simulado)', sem: 'rojo', read: '58 de 72 coinciden y las relaciones apuntan a infraestructura maliciosa. Rojo: bloquear y buscar en el SIEM.' },
+  { label: 'No encontrado', det: 0, nf: true, sem: 'gris', read: 'VirusTotal nunca vio este indicador. Gris: ausencia de datos no es seguridad. Cautela y análisis en entorno aislado.' }
+];
+const VTTIP = {
+  det: 'Detecciones: "X de Y motores" lo marcan como malicioso o sospechoso. Más motores de acuerdo, más confianza.',
+  community: 'Reputación de la comunidad: votos y comentarios de otros analistas que ya lo revisaron.',
+  dates: 'Fechas: cuándo se vio por primera vez y cuándo se analizó por última vez. Algo recién aparecido merece más cautela.',
+  rel: 'Relaciones: con qué otras IP, dominios o archivos está conectado. Aquí suele aparecer el resto de la infraestructura del atacante.'
+};
+let vtI = 1, vtDet = VT[1].det;
+const order = (() => { let s = 7, a = [...Array(Y).keys()]; for (let i = Y - 1; i > 0; i--) { s = (s * 1103515245 + 12345) & 0x7fffffff; const j = s % (i + 1);[a[i], a[j]] = [a[j], a[i]]; } return a; })();
+$('#vtPresets').innerHTML = VT.map((a, i) => `<button class="chip" data-i="${i}" aria-pressed="${i === vtI}">${esc(a.label)}</button>`).join('');
+function vtSem(d, nf) { return nf ? 'gris' : d === 0 ? 'verde' : d < 9 ? 'ambar' : 'rojo'; }
+function drawVt(tipKey) {
+  const v = VT[vtI]; const sem = v.nf ? 'gris' : vtSem(vtDet);
+  $$('#vtPresets .chip').forEach((c, i) => c.setAttribute('aria-pressed', i === vtI));
+  const hit = new Set(order.slice(0, vtDet));
+  const body = v.nf ? `<div class="nf">No se encontró este indicador.<br>Nadie lo ha subido ni reportado antes.</div>` :
+    `<div style="display:flex;align-items:baseline;gap:10px"><b class="mono" style="font-size:2rem;color:${COL[sem]}">${vtDet}</b><span>de ${Y} motores lo marcan</span></div>
+    <div class="engines" aria-hidden="true">${order.length ? [...Array(Y).keys()].map(i => `<i class="${hit.has(i) ? 'hit' : ''}"></i>`).join('') : ''}</div>
+    <ul class="fields" style="margin-top:8px">
+      <li><button data-k="det"><span>detecciones</span><b>${vtDet} / ${Y}</b></button></li>
+      <li><button data-k="community"><span>comunidad</span><b>${esc(v.community)}</b></button></li>
+      <li><button data-k="dates"><span>visto / analizado</span><b>${esc(v.first)} / ${esc(v.last)}</b></button></li>
+      <li><button data-k="rel"><span>relaciones</span><b style="text-align:right">${esc(v.rel)}</b></button></li></ul>`;
+  $('#vtRep').innerHTML = `<div class="rep-head"><span class="mono">${v.label}</span><span class="sig ${sem}">${NOM[sem]}</span></div>${body}<p class="tip">${tipKey ? esc(VTTIP[tipKey]) : esc(v.read)}</p>`;
+  $('#vtRange').disabled = !!v.nf; $('#vtRange').value = vtDet; vtBand();
+}
+function vtBand() {
+  const d = +$('#vtRange').value;
+  $('#vtBand').innerHTML = `<b class="mono">${d} / ${Y}</b> &nbsp; ` + (d === 0 ? 'Ningún motor se queja. Verde solo si el contexto también está limpio.' : d < 9 ? 'Pocos motores: puede ser un falso positivo o una amenaza muy nueva. Ámbar: contrasta.' : d < 25 ? 'Varios motores coinciden. Ámbar alto, casi rojo: confirma con otra fuente.' : 'La mayoría coincide. Rojo.');
+}
+$('#vtPresets').onclick = e => { const c = e.target.closest('.chip'); if (!c) return; vtI = +c.dataset.i; vtDet = VT[vtI].det; drawVt(); };
+$('#vtRep').onclick = e => { const b = e.target.closest('[data-k]'); if (b) drawVt(b.dataset.k); };
+$('#vtRange').oninput = () => { vtDet = +$('#vtRange').value; drawVt(); };
+drawVt();
+
+/* ---------- laboratorio de hash ---------- */
+let flipped = '';
+function drawHash() {
+  const t = $('#hashIn').value, a = sha256(t);
+  $('#hashA').innerHTML = '<span style="color:var(--muted)">SHA-256 original</span><br>' + a;
+  if (!flipped) { $('#hashB').hidden = true; $('#hashNote').textContent = 'Todo igual produce siempre la misma huella. Cambia una sola letra y mira qué pasa.'; return; }
+  const t2 = flipped, b = sha256(t2); let n = 0;
+  const hl = [...b].map((c, i) => c !== a[i] ? (n++, `<mark>${c}</mark>`) : c).join('');
+  $('#hashB').hidden = false; $('#hashB').innerHTML = '<span style="color:var(--muted)">SHA-256 con una letra distinta</span><br>' + hl;
+  $('#hashNote').textContent = `Una sola letra cambiada y ${n} de 64 caracteres de la huella son distintos. No se puede ir del hash al archivo, pero sí identificar el archivo con él.`;
+}
+$('#hashIn').oninput = () => { flipped = ''; drawHash(); };
+$('#hashFlip').onclick = () => {
+  const t = $('#hashIn').value; const i = t.search(/[a-zA-Z]/); if (i < 0) return;
+  const ch = t[i]; flipped = t.slice(0, i) + (ch === 'z' ? 'a' : ch === 'Z' ? 'A' : String.fromCharCode(ch.charCodeAt(0) + 1)) + t.slice(i + 1); drawHash();
+};
+drawHash();
+
+/* ---------- triaje ---------- */
+const ACT = { block: 'Bloquear y buscar en el SIEM', preblock: 'Bloquear preventivamente y avisar al equipo', contrast: 'Contrastar con otra fuente y con el contexto interno', document: 'No bloquear, documentar la verificación', sandbox: 'Tratar con cautela y analizar en un entorno aislado' };
+const CASES = [
+  { ind: 'IP 198.51.100.53', src: 'AbuseIPDB', facts: [['Puntaje', '0'], ['Pertenece a', 'Servicio DNS público (simulado)'], ['Lista blanca', 'Sí']], color: 'verde', action: 'document', why: 'Puntaje 0 y lista blanca: servicio legítimo conocido. Bloquearlo dejaría a tus usuarios sin resolver nombres. Documenta que lo verificaste.' },
+  { ind: 'IP 203.0.113.140', src: 'AbuseIPDB', facts: [['Puntaje', '97'], ['Reportes', 'más de 1.000'], ['Último reporte', 'esta misma semana']], color: 'rojo', action: 'block', why: 'Puntaje alto, volumen enorme y reportes recientes. Bloquea y busca esa IP en el SIEM para ver si ya tocó algo tuyo.' },
+  { ind: 'Hash SHA-256 de un adjunto', src: 'VirusTotal', facts: [['Resultado', 'No encontrado']], color: 'gris', action: 'sandbox', why: 'Que nadie lo haya visto no lo vuelve seguro: puede ser un archivo nuevo o dirigido. Cautela y análisis en entorno aislado.' },
+  { ind: 'Dominio cdn-estatico[.]example', src: 'VirusTotal', facts: [['Detecciones', '1 de 72 motores'], ['Pertenece a', 'Red de distribución de contenido conocida']], color: 'ambar', action: 'contrast', why: 'Una sola detección sobre una red de contenido famosa huele a falso positivo. Contrasta con otra fuente antes de bloquear.' },
+  { ind: 'Dominio istmocargo-facturacion[.]example', src: 'VirusTotal y consulta whois', facts: [['Detecciones', '0 de 72 motores'], ['Creado', 'hace 2 días'], ['Contexto', 'Imita el nombre de la empresa y llegó a facturación']], color: 'ambar', action: 'preblock', why: 'Ámbar alto: cero detecciones no lo exculpa porque es nuevo, y el contexto lo delata. Bloqueo preventivo y aviso al equipo.' },
+  { ind: 'IP 192.0.2.201', src: 'AbuseIPDB', facts: [['Puntaje', '45'], ['Reportes', '19'], ['Último reporte', 'hace más de 2 años']], color: 'ambar', action: 'contrast', why: 'Reportes viejos: la IP pudo cambiar de dueño o limpiarse. Revisa si hay reportes recientes y contrasta.' },
+  { ind: 'IP 192.0.2.77', src: 'AbuseIPDB', facts: [['Puntaje', '38'], ['isTor', 'Sí'], ['Reportes', '300, mezclados'], ['Contexto', 'Intenta iniciar sesión en el panel del TOS']], color: 'ambar', action: 'contrast', why: 'Tor no es malicioso en sí, pero un login al TOS por ahí es raro. Contrasta con tu contexto interno: ¿algún usuario legítimo entra así? Probablemente no.' },
+  { ind: 'Hash SHA-256 hallado en un equipo de facturación', src: 'VirusTotal', facts: [['Detecciones', '58 de 72 motores'], ['Visto por primera vez', 'hace 3 días'], ['Relaciones', 'Se comunica con una IP con puntaje 97']], color: 'rojo', action: 'block', why: 'Mayoría de motores de acuerdo, archivo reciente y conexiones a infraestructura mala. Rojo: bloquear el hash y buscar otras copias en el SIEM.' }
+];
+let tI = 0;
+function drawTriage() {
+  const box = $('#triage'); while (tI < CASES.length && S.cases[tI]) tI++;
+  if (tI >= CASES.length) {
+    const c = CASES.filter((_, i) => S.cases[i].c).length, a = CASES.filter((_, i) => S.cases[i].a).length;
+    box.innerHTML = `<h4>Resultado del triaje</h4><p>Colores acertados: <b>${c} de 8</b>. Acciones acertadas: <b>${a} de 8</b>.</p><p>${c >= 7 ? 'Criterio de analista. Ya estás leyendo resultados como se hace en el Taller #3.' : 'Repasa los casos que fallaste: la mayoría de los errores están entre ámbar y rojo, y entre gris y verde.'}</p><button class="btn ghost" id="trRe" type="button">Repetir el simulador</button>`;
+    $('#trRe').onclick = () => { S.cases = {}; tI = 0; save(); drawTriage(); };
+    if (c >= 7) award('ojo'); return;
+  }
+  const k = CASES[tI];
+  box.innerHTML = `<p class="progress-text">Caso ${tI + 1} de 8</p><h4>${esc(k.ind)}</h4><p class="progress-text" style="margin:0">Fuente consultada: ${esc(k.src)}</p>
+  <dl class="case-facts">${k.facts.map(f => `<dt>${esc(f[0])}</dt><dd>${esc(f[1])}</dd>`).join('')}</dl>
+  <p><b>1. ¿Qué color le das?</b></p><div class="pick" id="pk">${Object.keys(NOM).map(c => `<button class="sigbtn ${c}" data-c="${c}" aria-pressed="false"><span>${NOM[c]}</span></button>`).join('')}</div>
+  <p><b>2. ¿Qué haces?</b></p><select id="act"><option value="">Elige una acción</option>${Object.entries(ACT).map(([a, t]) => `<option value="${a}">${esc(t)}</option>`).join('')}</select>
+  <div class="tools"><button class="btn" id="trGo" type="button" disabled>Comprobar</button></div><div id="trFb"></div>`;
+  let col = '';
+  const upd = () => { $('#trGo').disabled = !(col && $('#act').value); };
+  $('#pk').onclick = e => { const b = e.target.closest('.sigbtn'); if (!b) return; col = b.dataset.c; $$('#pk .sigbtn').forEach(x => x.setAttribute('aria-pressed', x === b)); upd(); };
+  $('#act').onchange = upd;
+  $('#trGo').onclick = () => {
+    const c = col === k.color, a = $('#act').value === k.action; S.cases[tI] = { c, a }; save();
+    $('#trGo').disabled = true; $('#act').disabled = true; $$('#pk .sigbtn').forEach(x => x.disabled = true);
+    $('#trFb').innerHTML = `<div class="fb ${c && a ? 'good' : 'bad'}"><p>Color: ${c ? '<span class="ok">acertaste</span>' : `<span class="no">era ${NOM[k.color]}</span>`}. Acción: ${a ? '<span class="ok">acertaste</span>' : `<span class="no">lo indicado era "${esc(ACT[k.action])}"</span>`}.</p><p>${esc(k.why)}</p></div><div class="tools"><button class="btn" id="trNext" type="button">${tI === CASES.length - 1 ? 'Ver resultado' : 'Siguiente caso'}</button></div>`;
+    $('#trNext').onclick = () => { tI++; drawTriage(); };
+  };
+}
+drawTriage();
+
+/* ---------- investigacion INC-0311 ---------- */
+const INV = {
+  abuse: { n: 'Consultar AbuseIPDB', out: `<span class="h">AbuseIPDB (simulado)  203.0.113.77</span>abuseConfidenceScore: <span class="bad">91%</span>\ntotalReports: 538, último reporte hace 4 horas\nCategorías más reportadas: Port Scan, Brute-Force, Hacking\nISP: hosting (Data Center)\nisTor: No   isWhitelisted: No` },
+  vt: { n: 'Consultar VirusTotal', out: `<span class="h">VirusTotal (simulado)  203.0.113.77</span>Detecciones: <span class="bad">11 de 72 motores</span>\nComunidad: comentarios "escáner de RDP y SSH"\nRelaciones: 3 archivos que se comunican con esta IP\nVisto por primera vez: hace 9 días` },
+  siem: { n: 'Buscar en nuestro SIEM', out: `<span class="h">SIEM de ISTMO Cargo</span>47 intentos <span class="warn">denegados</span> entre 02:41 y 03:09\nPuertos de destino: 3389 (RDP) y 22 (SSH), hacia el segmento del TOS\nInicios de sesión exitosos desde esa IP: <span class="okc">0</span>\nApariciones previas en 4 semanas: 0 (primera vez)` }
+};
+function drawInv() {
+  $('#invTools').innerHTML = Object.entries(INV).map(([k, v]) => `<button class="chip" data-k="${k}" aria-pressed="${S.inv.used.includes(k)}">${v.n}</button>`).join('');
+  const log = $('#invLog'); log.innerHTML = '<span class="h">Consola de investigación</span>' + (S.inv.used.length ? '' : 'Elige una herramienta para empezar.');
+  S.inv.used.forEach(k => log.insertAdjacentHTML('beforeend', '<div style="white-space:pre-wrap">' + INV[k].out + '</div>'));
+  $('#invDecide').hidden = S.inv.used.length < 3;
+  if (S.inv.done) showTicket();
+}
+$('#invTools').onclick = e => { const b = e.target.closest('.chip'); if (!b) return; const k = b.dataset.k; if (!S.inv.used.includes(k)) S.inv.used.push(k); save(); drawInv(); if (S.inv.used.length === 3 && !S.inv.done) $('#invDecide').scrollIntoView({ behavior: 'smooth', block: 'center' }); };
+const DEC = [
+  ['Ignorarla: el firewall ya denegó todo, no pasó nada.', 0, 'Que el firewall funcionó no cancela la detección. Alguien con una IP sin historia probó puertos de administración 47 veces, y volverá con otra táctica. Sin registro, nadie lo sabrá.'],
+  ['Bloquear la IP en el perímetro, documentar con la evidencia de las tres fuentes y vigilar el SIEM por IP parecidas.', 1, 'Decisión proporcional y documentada. Dos fuentes abiertas y tu propio SIEM cuentan la misma historia.'],
+  ['Apagar el servidor TOS por precaución.', 0, 'Desproporcionado: no hubo accesos exitosos y apagar el TOS frena la operación del puerto. Contener no es destruir la operación.'],
+  ['Esperar al turno de la mañana sin escribir nada.', 0, 'Rompe la regla de documentar. El siguiente turno no tendría contexto ni evidencia.']
+];
+$('#invOpts').innerHTML = DEC.map((d, i) => `<button class="opt" data-i="${i}">${esc(d[0])}</button>`).join('');
+$('#invOpts').onclick = e => {
+  const b = e.target.closest('.opt'); if (!b) return; const d = DEC[+b.dataset.i]; b.classList.add(d[1] ? 'right' : 'wrong');
+  $('#invFb').innerHTML = `<div class="fb ${d[1] ? 'good' : 'bad'}"><p>${d[1] ? '<span class="ok">Buena decisión.</span> ' : '<span class="no">No es la mejor.</span> '}${esc(d[2])}</p>${d[1] ? '<p><b>Y la lección de fondo:</b> si AbuseIPDB hubiera dicho 0 pero tu SIEM mostrara esos 47 intentos, seguirías teniendo un caso. Tu evidencia interna pesa más que cualquier puntaje externo.</p>' : ''}</div>`;
+  if (d[1]) { if (!S.inv.done) { S.inv.done = true; S.inv.time = new Date().toLocaleString('es-PA'); save(); } showTicket(); award('misterio'); }
+};
+function showTicket() {
+  const txt = `INC-0311 | Cierre\nAnalista: ${S.handle || '(sin nombre)'}\nHora de cierre: ${S.inv.time || ''}\nIndicador: 203[.]0[.]113[.]77 (IP)\nEvidencia: AbuseIPDB 91% (538 reportes, último hace 4 h, escaneo y fuerza bruta); VirusTotal 11/72 motores; SIEM: 47 intentos denegados hacia RDP y SSH entre 02:41 y 03:09, sin accesos exitosos, primera aparición en 4 semanas.\nClasificación: Rojo\nAcción: bloqueo en el firewall perimetral, vigilancia de IP similares, ticket documentado.\nLimitación: la reputación se basa en reportes de la comunidad y puede cambiar con el tiempo.`;
+  $('#ticketOut').innerHTML = `<h3>Tu ticket de cierre</h3><pre class="out" id="tkt">${esc(txt)}</pre><div class="tools"><button class="btn ghost" id="tkCopy" type="button">Copiar ticket</button></div>`;
+  $('#tkCopy').onclick = () => copy(txt);
+}
+function copy(t) { (navigator.clipboard ? navigator.clipboard.writeText(t) : Promise.reject()).then(() => toast('Copiado al portapapeles.'), () => { const a = document.createElement('textarea'); a.value = t; document.body.appendChild(a); a.select(); try { document.execCommand('copy'); toast('Copiado al portapapeles.'); } catch (e) { toast('No se pudo copiar. Selecciona el texto a mano.'); } a.remove(); }); }
+
+/* ---------- higiene ---------- */
+const PRAC = [
+  ['Contrasta fuentes', 'Una fuente es un testigo. Dos que coinciden son un indicio fuerte. Dos que se contradicen te dicen que investigues más. En la IP de la madrugada, AbuseIPDB, VirusTotal y tu SIEM contaron la misma historia, y por eso la decisión fue sencilla.'],
+  ['Mira la fecha', 'Los atacantes alquilan servidores y los abandonan, y las IP cambian de dueño. Una IP reportada hace tres años puede ser hoy un servidor legítimo; una IP limpia ayer puede estar comprometida hoy. Lee "último reporte" antes de leer el puntaje.'],
+  ['Cuidado con los falsos positivos', 'Miles de personas pueden compartir una misma IP pública (redes móviles, oficinas, CDN). Si una hace algo malo, la IP queda marcada para todas. Una detección aislada, 1 de 72 motores, sobre el dominio de una CDN famosa casi siempre es ruido.'],
+  ['Protege la privacidad', 'Consulta el hash, no el archivo. Los archivos que subes a un servicio público pueden quedar disponibles para otros usuarios del servicio, y una factura o un documento de un cliente no debe terminar ahí.'],
+  ['Neutraliza al compartir', 'Escribe hxxp://sitio[.]com en lugar del enlace activo. Tu reporte lo leerán varias personas y basta un clic distraído para abrir algo peligroso.'],
+  ['Documenta', 'Anota fuente, fecha, hora y resultado de cada consulta. Mañana el puntaje habrá cambiado, y tu nota será la prueba de por qué decidiste lo que decidiste. Es exactamente lo que se evalúa en el Taller #3.']
+];
+$('#practices').innerHTML = PRAC.map(p => `<details class="pr"><summary>${esc(p[0])}</summary><div><p>${esc(p[1])}</p></div></details>`).join('');
+const dfwd = s => s.replace(/https?(?=:\/\/)/gi, m => m.toLowerCase() === 'https' ? 'hxxps' : 'hxxp').replace(/(\w)\.(?=\w)/g, '$1[.]').replace(/(\w)\.(?=\w)/g, '$1[.]').replace(/@/g, '[@]');
+const dfback = s => s.replace(/hxxp(s?)(?=:\/\/)/gi, 'http$1').replace(/\[\.\]/g, '.').replace(/\[@\]/g, '@');
+$('#dfGo').onclick = () => { $('#dfOut').textContent = dfwd($('#dfIn').value); };
+$('#dfBack').onclick = () => { $('#dfOut').textContent = dfback($('#dfIn').value); };
+$('#dfCopy').onclick = () => copy($('#dfOut').textContent);
+const TF = [
+  ['Una IP con reportes de hace tres años y ninguno reciente debe tratarse igual que una con reportes de hoy.', false, 'La reputación cambia con el tiempo: la IP pudo cambiar de dueño o limpiarse. Los reportes recientes pesan más.'],
+  ['Subir el archivo de un cliente a VirusTotal es una forma segura de saber si es malicioso.', false, 'Puede quedar disponible para otros usuarios del servicio. Basta con consultar el hash.'],
+  ['Una IP de una CDN o de un servicio compartido puede aparecer señalada sin ser maliciosa.', true, 'Muchos usuarios comparten esas IP, y el comportamiento de uno mancha a todos: es la fuente típica de falsos positivos.'],
+  ['Para avisar al equipo, pega el enlace sospechoso tal cual en el chat para que todos lo vean.', false, 'Alguien puede abrirlo por error. Neutralízalo como hxxp://sitio[.]com antes de compartirlo.']
+];
+function drawTF() {
+  $('#tf').innerHTML = TF.map((t, i) => { const a = S.tf[i]; return `<div class="tf"><div>${esc(t[0])}</div><div class="row"><button class="chip" data-i="${i}" data-v="1" aria-pressed="${a === 1}">Verdadero</button><button class="chip" data-i="${i}" data-v="0" aria-pressed="${a === 0}">Falso</button></div>${a === undefined ? '' : `<div class="fb ${(a === 1) === t[1] ? 'good' : 'bad'}"><p>${(a === 1) === t[1] ? '<span class="ok">Correcto.</span> ' : '<span class="no">No.</span> '}${esc(t[2])}</p></div>`}</div>`; }).join('');
+  if (TF.every((t, i) => S.tf[i] !== undefined && (S.tf[i] === 1) === t[1])) award('higiene');
+}
+$('#tf').onclick = e => { const b = e.target.closest('.chip'); if (!b) return; S.tf[+b.dataset.i] = +b.dataset.v; save(); drawTF(); };
+drawTF();
+
+/* ---------- mision de campo ---------- */
+const STEPS = [
+  'Crea tu cuenta gratuita en <a href="https://www.abuseipdb.com/" target="_blank" rel="noopener">AbuseIPDB</a> y en <a href="https://www.virustotal.com/" target="_blank" rel="noopener">VirusTotal</a> (hazlo antes de la clase).',
+  'En AbuseIPDB consulta <code>8.8.8.8</code> (DNS público de Google). Anota puntaje, país, ISP y si está en lista blanca.',
+  'En VirusTotal busca el mismo <code>8.8.8.8</code>. ¿Coinciden las dos fuentes?',
+  `En VirusTotal busca este hash, del archivo de prueba EICAR (inofensivo, usado en todo el mundo para probar antivirus): <br><code style="word-break:break-all">${EICAR}</code>`,
+  'Anota cuántos motores lo marcan. ¿Qué semáforo le das, y qué harías con él?',
+  'Completa la ficha de más abajo con fuente, fecha, hora, resultado, semáforo, acción y una limitación.'
+];
+$('#steps').innerHTML = STEPS.map((s, i) => `<li><input type="checkbox" id="st${i}" ${S.steps[i] ? 'checked' : ''}><label for="st${i}">${s}</label></li>`).join('');
+$('#steps').onchange = e => { const i = +e.target.id.slice(2); S.steps[i] = e.target.checked; save(); };
+
+const DET = [
+  ['03:12 Veo la IP 203.0.113.77 intentando RDP. La consulto en AbuseIPDB: puntaje 91%, 538 reportes, el último hace 4 horas.', false, 'Esta línea está bien: registra la fuente, el puntaje y la fecha del último reporte.'],
+  ['Como AbuseIPDB dice 91%, no hace falta consultar nada más: la bloqueo.', true, 'Decidió con una sola fuente. Lo correcto es contrastar con otra fuente (VirusTotal) y con el SIEM antes de decidir.'],
+  ['Subí a VirusTotal el PDF de la factura de un cliente de la Zona Libre de Colón para ver si era malicioso.', true, 'Expuso un documento de un cliente en un servicio público. Debió consultar el hash del archivo, no subirlo.'],
+  ['Pegué en el chat del equipo el enlace http://descargas-factura.example.com/pago.exe para que lo revisen.', true, 'Dejó un enlace activo a un archivo ejecutable. Debió neutralizarlo: hxxp://descargas-factura[.]example[.]com/pago[.]exe.'],
+  ['La IP 192.0.2.150 aparece como "no encontrada" en las dos fuentes, así que la marco como segura.', true, 'Ausencia de datos no es seguridad. Es gris: puede ser nueva. Se trata con cautela.'],
+  ['Una IP con puntaje 70 tiene solo reportes de hace más de dos años. La trato igual que una con reportes de hoy.', true, 'Ignoró la fecha. La reputación cambia con el tiempo, y los reportes viejos pesan menos.'],
+  ['Anoté fuente, fecha, hora y resultado de cada consulta en el ticket.', false, 'Esta línea está bien: documentar cada consulta es la buena práctica.'],
+  ['El dominio cdn-estatico[.]example tiene 1 detección de 72 y pertenece a una red de contenido conocida, así que contrasto con otra fuente antes de decidir.', false, 'Esta línea está bien: una detección aislada sobre una CDN conocida suele ser un falso positivo, y contrastar es lo correcto.']
+];
+function drawDet() {
+  const d = S.det || { sel: [], done: false }; const box = $('#det');
+  box.innerHTML = DET.map((l, i) => { const on = d.sel.includes(i); let cls = ''; if (d.done) cls = l[1] ? (on ? 'right' : 'wrong') : (on ? 'wrong' : ''); return `<button class="opt ${on && !d.done ? 'sel' : ''} ${cls}" data-i="${i}" aria-pressed="${on}" ${d.done ? 'disabled' : ''}>${esc(l[0])}</button>`; }).join('').replace(/^/, '<div class="opts">') + '</div>' +
+    (d.done ? '' : `<div class="tools"><button class="btn" id="detGo" type="button">Revisar</button></div>`);
+  if (d.done) {
+    const found = DET.filter((l, i) => l[1] && d.sel.includes(i)).length, fake = DET.filter((l, i) => !l[1] && d.sel.includes(i)).length;
+    box.insertAdjacentHTML('beforeend', `<div class="fb ${found === 5 && !fake ? 'good' : 'bad'}"><p><b>Errores encontrados: ${found} de 5.</b> Líneas correctas que marcaste por error: ${fake}.</p>${DET.map((l, i) => (l[1] || d.sel.includes(i)) ? `<p><b>Línea ${i + 1}.</b> ${esc(l[2])}</p>` : '').join('')}</div><div class="tools"><button class="btn ghost" id="detRe" type="button">Intentar de nuevo</button></div>`);
+    if (found === 5 && !fake) award('detective');
+  }
+}
+$('#det').onclick = e => {
+  S.det = S.det || { sel: [], done: false };
+  const o = e.target.closest('.opt');
+  if (o && !S.det.done) { const i = +o.dataset.i, k = S.det.sel.indexOf(i); if (k >= 0) S.det.sel.splice(k, 1); else S.det.sel.push(i); save(); drawDet(); return; }
+  if (e.target.id === 'detGo') { if (!S.det.sel.length) { toast('Marca al menos una línea.'); return; } S.det.done = true; save(); drawDet(); }
+  if (e.target.id === 'detRe') { S.det = { sel: [], done: false }; save(); drawDet(); }
+};
+
+/* ---------- ficha ---------- */
+if (!S.rows) S.rows = [
+  { ind: '8.8.8.8', tipo: 'IP', fuente: 'AbuseIPDB', fecha: '', res: '', sem: '', acc: '', lim: '' },
+  { ind: '8.8.8.8', tipo: 'IP', fuente: 'VirusTotal', fecha: '', res: '', sem: '', acc: '', lim: '' },
+  { ind: EICAR, tipo: 'Hash SHA-256', fuente: 'VirusTotal', fecha: '', res: '', sem: '', acc: '', lim: '' }
+];
+function drawRows() {
+  $('#fichaRows').innerHTML = S.rows.map((r, i) => `<div class="ficha-row" data-i="${i}">
+    <label class="w3">Indicador<input class="field" data-k="ind" value="${esc(r.ind)}"></label>
+    <label class="w2">Tipo<input class="field" data-k="tipo" value="${esc(r.tipo)}"></label>
+    <label>Fuente<input class="field" data-k="fuente" value="${esc(r.fuente)}"></label>
+    <label class="w2">Fecha y hora<input class="field" data-k="fecha" value="${esc(r.fecha)}" placeholder="Pulsa Ahora"></label>
+    <label><span>&nbsp;</span><button class="btn ghost" data-now type="button">Ahora</button></label>
+    <label class="w3">Semáforo<select data-k="sem"><option value="">Elige</option>${Object.entries(NOM).map(([k, n]) => `<option value="${k}" ${r.sem === k ? 'selected' : ''}>${n}</option>`).join('')}</select></label>
+    <label class="w3">Acción recomendada<select data-k="acc"><option value="">Elige</option>${Object.entries(ACT).map(([k, n]) => `<option value="${k}" ${r.acc === k ? 'selected' : ''}>${esc(n)}</option>`).join('')}</select></label>
+    <label class="w6">Resultado obtenido<textarea data-k="res" placeholder="Puntaje, detecciones, país, lista blanca...">${esc(r.res)}</textarea></label>
+    <label class="w6">Una limitación de este resultado<textarea data-k="lim" placeholder="Por ejemplo: la fecha de los reportes o un posible falso positivo">${esc(r.lim)}</textarea></label>
+  </div>`).join('');
+}
+$('#fichaRows').addEventListener('input', e => { const row = e.target.closest('.ficha-row'); if (!row || !e.target.dataset.k) return; S.rows[+row.dataset.i][e.target.dataset.k] = e.target.value; save(); });
+$('#fichaRows').addEventListener('click', e => { if (!e.target.matches('[data-now]')) return; const row = e.target.closest('.ficha-row'); const v = new Date().toLocaleString('es-PA'); S.rows[+row.dataset.i].fecha = v; save(); row.querySelector('[data-k="fecha"]').value = v; });
+$('#addRow').onclick = () => { S.rows.push({ ind: '', tipo: '', fuente: '', fecha: '', res: '', sem: '', acc: '', lim: '' }); save(); drawRows(); };
+drawRows();
+function fichaMd() {
+  const cell = s => String(s || '').replace(/\|/g, '/').replace(/\n/g, ' ');
+  const head = `# Ficha de verificación de indicadores\n\nAnalista: ${S.handle}\nCaso: ISTMO Cargo & Logística, SOC\nTópicos Especiales I, Semana 11 (Tema 3.3)\nGenerada: ${new Date().toLocaleString('es-PA')}\n\n`;
+  const tbl = '| Indicador | Tipo | Fuente | Fecha y hora | Resultado | Semáforo | Acción recomendada | Limitación |\n|---|---|---|---|---|---|---|---|\n' +
+    S.rows.map(r => `| ${cell(r.ind)} | ${cell(r.tipo)} | ${cell(r.fuente)} | ${cell(r.fecha)} | ${cell(r.res)} | ${r.sem ? NOM[r.sem] : ''} | ${r.acc ? ACT[r.acc] : ''} | ${cell(r.lim)} |`).join('\n');
+  return head + tbl + '\n';
+}
+$('#mkFicha').onclick = () => {
+  if (!needHandle()) return;
+  const incompletas = S.rows.filter(r => !r.res || !r.sem || !r.acc || !r.lim || !r.fecha).length;
+  $('#fichaPre').textContent = fichaMd(); $('#fichaOut').hidden = false; S.ficha = true; save();
+  if (incompletas) toast(`Tienes ${incompletas} fila(s) con campos vacíos. Complétalas antes de entregar.`); else award('ficha');
+};
+$('#fCopy').onclick = () => copy(fichaMd());
+$('#fDl').onclick = () => { const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([fichaMd()], { type: 'text/markdown' })); a.download = 'ficha_verificacion_semana11.md'; a.click(); URL.revokeObjectURL(a.href); };
+$('#fPrint').onclick = () => {
+  const rows = S.rows.map(r => `<tr>${[r.ind, r.tipo, r.fuente, r.fecha, r.res, r.sem ? NOM[r.sem] : '', r.acc ? ACT[r.acc] : '', r.lim].map(c => `<td>${esc(c)}</td>`).join('')}</tr>`).join('');
+  const w = window.open('', '_blank'); if (!w) { toast('Permite las ventanas emergentes para imprimir.'); return; }
+  w.document.write(`<!doctype html><meta charset="utf-8"><title>Ficha de verificación</title><style>body{font-family:Arial,sans-serif;margin:24px}table{border-collapse:collapse;width:100%;font-size:12px}td,th{border:1px solid #888;padding:6px;vertical-align:top;word-break:break-word}th{background:#eee}</style><h2>Ficha de verificación de indicadores</h2><p>Analista: ${esc(S.handle)}<br>Caso: ISTMO Cargo &amp; Logística, SOC. Tópicos Especiales I, Semana 11 (Tema 3.3)<br>Generada: ${esc(new Date().toLocaleString('es-PA'))}</p><table><tr><th>Indicador</th><th>Tipo</th><th>Fuente</th><th>Fecha y hora</th><th>Resultado</th><th>Semáforo</th><th>Acción</th><th>Limitación</th></tr>${rows}</table>`);
+  w.document.close(); w.focus(); w.print();
+};
+
+/* ---------- test de calibracion ---------- */
+const TEST = [
+  { q: 'OSINT significa:', o: ['Inteligencia de fuentes abiertas', 'Un tipo de firewall', 'Un protocolo de red'], a: 0, e: 'Open Source Intelligence: inteligencia obtenida de fuentes públicas.' },
+  { q: 'AbuseIPDB sirve principalmente para consultar la reputación de:', o: ['Archivos', 'Direcciones IP', 'Contraseñas'], a: 1, e: 'Es una base de datos de reportes de IP abusivas.' },
+  { q: 'Un abuseConfidenceScore cercano a 100 indica que:', o: ['La IP es muy probablemente abusiva', 'La IP es segura', 'No hay datos'], a: 0, e: 'Cerca de 100 significa alta confianza de que es abusiva (siempre contrasta y mira la fecha).' },
+  { q: 'Para consultar un archivo en VirusTotal basta con su:', o: ['Hash', 'Tamaño', 'Nombre'], a: 0, e: 'El hash identifica el archivo sin necesidad de subirlo.' },
+  { q: 'Verdadero o falso: si un indicador no aparece en ninguna fuente, es seguro.', o: ['Verdadero', 'Falso'], a: 1, e: 'Puede ser nuevo o simplemente no reportado. Ausencia de datos no es seguridad.' },
+  { q: 'Verdadero o falso: conviene contrastar al menos dos fuentes antes de decidir.', o: ['Verdadero', 'Falso'], a: 0, e: 'Dos fuentes que coinciden elevan la confianza; si se contradicen, investigas más.' },
+  { q: 'Para compartir una URL sospechosa de forma segura se escribe:', o: ['hxxp://sitio[.]com', 'El enlace tal cual', 'En mayúsculas'], a: 0, e: 'Así nadie la abre por error al leer tu reporte.' }
+];
+const REAS = ['Existen falsos positivos (IP compartidas, CDN)', 'La reputación cambia con el tiempo', 'Una fuente puede no tener datos o estar desactualizada', 'El contexto interno puede contradecirla'];
+function drawTest() {
+  const done = S.testDone;
+  $('#test').innerHTML = TEST.map((t, i) => `<div class="q"><p>${i + 1}. ${esc(t.q)}</p><div class="opts">${t.o.map((o, j) => `<button class="opt ${S.test[i] === j ? 'sel' : ''} ${done && j === t.a ? 'right' : ''} ${done && S.test[i] === j && j !== t.a ? 'wrong' : ''}" data-i="${i}" data-j="${j}" ${done ? 'disabled' : ''}>${esc(o)}</button>`).join('')}</div>${done ? `<div class="fb"><p>${esc(t.e)}</p></div>` : ''}</div>`).join('') +
+    `<div class="q"><p>8. ¿Por qué un resultado de reputación no debe aceptarse sin contrastarlo? Escribe dos razones con tus palabras y marca después cuáles de estas cubriste.</p><textarea id="t8" rows="3" ${done ? 'disabled' : ''}>${esc(S.test.t8 || '')}</textarea><div class="checks">${REAS.map((r, i) => `<label><input type="checkbox" data-r="${i}" ${(S.test.reas || []).includes(i) ? 'checked' : ''} ${done ? 'disabled' : ''}> ${esc(r)}</label>`).join('')}</div></div>
+    <div class="tools"><button class="btn" id="tGo" type="button" ${done ? 'hidden' : ''}>Calificar</button><button class="btn ghost" id="tRe" type="button" ${done ? '' : 'hidden'}>Repetir el test</button></div><div id="tRes"></div>`;
+  if (done) showTestRes();
+}
+function showTestRes() {
+  const s = TEST.filter((t, i) => S.test[i] === t.a).length + ((S.test.reas || []).length >= 2 ? 1 : 0);
+  $('#tRes').innerHTML = `<div class="fb ${s >= 6 ? 'good' : 'bad'}"><p><b>${s} de 8.</b> ${s >= 6 ? 'Estás listo para el Taller #3.' : 'Repasa las secciones de las preguntas que fallaste y vuelve a intentarlo.'}</p></div>`;
+  if (s >= 6) award('calibrado');
+}
+$('#test').onclick = e => {
+  const o = e.target.closest('.opt'); if (o && !S.testDone) { S.test[+o.dataset.i] = +o.dataset.j; save(); $$('.opt', o.parentElement).forEach(x => x.classList.toggle('sel', x === o)); return; }
+  if (e.target.id === 'tGo') { S.test.t8 = $('#t8').value; S.test.reas = $$('[data-r]:checked').map(c => +c.dataset.r); S.testDone = true; save(); drawTest(); }
+  if (e.target.id === 'tRe') { S.test = {}; S.testDone = false; save(); drawTest(); }
+};
+drawTest();
+
+/* ---------- teoria: dato, informacion, inteligencia ---------- */
+const STG = [
+  ['Dato', '203.0.113.77', 'Un número. Por sí solo no dice nada.'],
+  ['Información', '203.0.113.77 intentó 47 conexiones a los puertos 3389 y 22 entre las 02:41 y las 03:09.', 'Ya sabes qué hizo, pero todavía no sabes si importa.'],
+  ['Inteligencia', 'Es una IP que escanea RDP y SSH en muchas redes a la vez. ISTMO no expone RDP a Internet, así que no hay nada que encontrar. Se bloquea y se vigilan IP parecidas.', 'Contexto de la comunidad más tu propia situación da como resultado una decisión.']
+];
+let stgN = 1;
+function drawStages() {
+  $('#stages').innerHTML = STG.slice(0, stgN).map(s => `<div class="stage"><b>${esc(s[0])}</b><span class="mono">${esc(s[1])}</span><span class="progress-text">${esc(s[2])}</span></div>`).join('') +
+    (stgN < STG.length ? `<div class="tools"><button class="btn" id="stgMore" type="button">${stgN === 1 ? 'Agregar lo que dicen los logs' : 'Agregar lo que sabe la comunidad y tu contexto'}</button></div>` : `<div class="tools"><button class="btn ghost" id="stgRe" type="button">Empezar de nuevo</button></div>`);
+  const m = $('#stgMore'); if (m) m.onclick = () => { stgN++; drawStages(); };
+  const r = $('#stgRe'); if (r) r.onclick = () => { stgN = 1; drawStages(); };
+}
+drawStages();
+
+/* ---------- piramide del dolor ---------- */
+const PYR = [
+  ['Tácticas, técnicas y procedimientos', 'Duro', 'Cómo trabaja el atacante: sus pasos y hábitos. Cambiarlos lo obliga a aprender un oficio nuevo. Aquí ya no basta una consulta de reputación: hace falta análisis.', 56],
+  ['Herramientas', 'Desafiante', 'El software que usa. Reemplazarlo cuesta tiempo y dinero.', 64],
+  ['Artefactos de red y de equipo', 'Molesto', 'Las huellas que deja: patrones de tráfico, claves de registro, nombres de archivo. Cambiarlas es incómodo, pero se puede.', 74],
+  ['Nombres de dominio', 'Simple', 'Registrar otro dominio cuesta pocos dólares y pocos minutos. Por eso aparecen dominios nuevos todos los días.', 84],
+  ['Direcciones IP', 'Fácil', 'Alquilar otro servidor o cambiar de proveedor. Una IP mala hoy puede ser de otra persona (e inocente) mañana.', 92],
+  ['Valores hash', 'Trivial', 'Cambiar un solo byte del archivo produce un hash nuevo. Si un hash no aparece en VirusTotal, puede ser solo una variante.', 100]
+];
+let pyrI = null;
+function drawPyr() {
+  $('#pyr').innerHTML = PYR.map((p, i) => `<button data-i="${i}" aria-pressed="${pyrI === i}" style="width:${p[3]}%">${esc(p[0])}<small>Para el atacante cambiarlo es: ${esc(p[1].toLowerCase())}</small></button>`).join('');
+  $('#pyrTip').textContent = pyrI === null ? 'Toca un nivel para ver qué significa.' : PYR[pyrI][2];
+}
+$('#pyr').onclick = e => { const b = e.target.closest('button'); if (b) { pyrI = +b.dataset.i; drawPyr(); } };
+drawPyr();
+
+/* ---------- verificacion rapida del lunes ---------- */
+const QC = [
+  { q: 'Para consultar la reputación de una dirección IP usarías principalmente:', o: ['AbuseIPDB', 'Un editor de texto', 'Una hoja de cálculo'], a: 0, e: 'AbuseIPDB está hecha para reputación de IP.' },
+  { q: 'Verdadero o falso: para saber si un archivo es malicioso en VirusTotal siempre hay que subir el archivo completo.', o: ['Verdadero', 'Falso'], a: 1, e: 'Falso. Basta con consultar su hash, y así no expones el archivo.' }
+];
+function drawQc() {
+  $('#qc').innerHTML = QC.map((t, i) => { const a = S.qc && S.qc[i]; return `<div class="q"><p>${i + 1}. ${esc(t.q)}</p><div class="opts">${t.o.map((o, j) => `<button class="opt ${a !== undefined && a !== null ? (j === t.a ? 'right' : (a === j ? 'wrong' : '')) : ''}" data-i="${i}" data-j="${j}" ${a != null ? 'disabled' : ''}>${esc(o)}</button>`).join('')}</div>${a != null ? `<div class="fb ${a === t.a ? 'good' : 'bad'}"><p>${a === t.a ? '<span class="ok">Correcto.</span> ' : '<span class="no">No.</span> '}${esc(t.e)}</p></div>` : ''}</div>`; }).join('');
+}
+$('#qc').onclick = e => { const o = e.target.closest('.opt'); if (!o) return; S.qc = S.qc || {}; S.qc[+o.dataset.i] = +o.dataset.j; save(); drawQc(); };
+drawQc();
+
+/* ---------- reinicio ---------- */
+let resetT; $('#resetAll').onclick = e => { const b = e.currentTarget; if (b.dataset.arm) { try { localStorage.removeItem(KEY); } catch (er) {} location.reload(); return; } b.dataset.arm = '1'; b.textContent = 'Pulsa otra vez para borrar todo'; clearTimeout(resetT); resetT = setTimeout(() => { delete b.dataset.arm; b.textContent = 'Borrar mi progreso'; }, 4000); };
+
+/* ---------- arranque ---------- */
+pareoScore(); drawScen(); drawInv(); drawDet(); renderBadges(); renderWho();
+{ const k = steps.findIndex(s => '#' + s.id === location.hash); goStep(k >= 0 ? k : (S.step || 0), true); }
+})();
+
+</script>
+</body>
+</html>
